@@ -58,7 +58,7 @@ function createServer() {
   const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:8080";
   app.use(
     cors({
-      origin: corsOrigin,
+      origin: corsOrigin.includes(',') ? corsOrigin.split(',') : corsOrigin,
       credentials: true,
     }),
   );
