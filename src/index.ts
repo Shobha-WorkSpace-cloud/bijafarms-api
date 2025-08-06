@@ -56,24 +56,18 @@ function createServer() {
 
   // Middleware
   const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:8080,https://shobha-workspace-cloud.github.io";
-  const allowedOrigins = corsOrigin.includes(',') ? corsOrigin.split(',') : [corsOrigin];
+  const allowedOrigins = corsOrigin.split(',').map(origin => origin.trim());
   
   app.use(
     cors({
-      origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin)) {
-          callback(null, true);
-        } else {
-          callback(new Error('Not allowed by CORS'));
-        }
-      },
+      origin: allowedOrigins,
       credentials: true,
     }),
   );
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  console.log(`🚀 Server starting with CORS origin: ${corsOrigin}`);
+  console.log(`🚀 Server starting with CORS origins: ${allowedOrigins.join(', ')}`);
 
   // API base path
   const apiBasePath = "/api";
