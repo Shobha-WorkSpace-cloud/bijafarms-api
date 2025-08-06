@@ -58,16 +58,26 @@ function createServer() {
   const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:8080,https://shobha-workspace-cloud.github.io";
   const allowedOrigins = corsOrigin.split(',').map(origin => origin.trim());
   
-  app.use(
-    cors({
-      origin: allowedOrigins,
-      credentials: true,
-    }),
-  );
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+      res.header('Access-Control-Allow-Origin', origin);
+    }
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin,X-Requested-With,Content-Type,Accept,Authorization');
+    
+    if (req.method === 'OPTIONS') {
+      res.sendStatus(200);
+    } else {
+      next();
+    }
+  });
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
   console.log(`🚀 Server starting with CORS origins: ${allowedOrigins.join(', ')}`);
+  console.log(`🔧 CORS middleware configured for preflight requests`);
 
   // API base path
   const apiBasePath = "/api";
