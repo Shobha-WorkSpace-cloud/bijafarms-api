@@ -55,7 +55,7 @@ function createServer() {
   const app = express();
 
   // Middleware
-  const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:8080";
+  const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:8080,https://shobha-workspace-cloud.github.io";
   app.use(
     cors({
       origin: corsOrigin.includes(',') ? corsOrigin.split(',') : corsOrigin,
