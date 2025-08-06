@@ -1,0 +1,31 @@
+[
+  {
+    "id": "1",
+    "title": "Monthly Health Checkup - Goats",
+    "description": "Routine health examination for all goats",
+    "category": "animal-health",
+    "taskType": "checkup",
+    "priority": "medium",
+    "status": "completed",
+    "dueDate": "2025-08-01",
+    "assignedTo": "Dr. Sharma",
+    "notes": "Check weight, temperature, and general condition",
+    "createdAt": "2024-01-01",
+    "reminderSent": false,
+    "completedAt": "2025-08-01"
+  },
+  {
+    "id": "2",
+    "title": "Plant Winter Wheat",
+    "description": "Prepare and plant winter wheat in the north field",
+    "category": "crop-management",
+    "taskType": "planting",
+    "priority": "high",
+    "status": "pending",
+    "dueDate": "2024-01-10",
+    "assignedTo": "Farm Team",
+    "notes": "Soil preparation completed, seeds ready",
+    "createdAt": "2024-01-01",
+    "reminderSent": false
+  }
+]

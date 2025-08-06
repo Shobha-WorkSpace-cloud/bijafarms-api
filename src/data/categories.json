@@ -1,0 +1,90 @@
+{
+  "categories": [
+    {
+      "id": "1754312752564",
+      "name": "Business",
+      "subCategories": [
+        "General",
+        "GoatB-Care",
+        "GoatB-Misc",
+        "GoatB-Shed",
+        "GoatB-Vet",
+        "GoatB-feed",
+        "GoatB-goatpurchase",
+        "GoatB-machinary",
+        "Misc",
+        "PoultryB-Product",
+        "agri",
+        "farming",
+        "harvest pit",
+        "watchmen"
+      ],
+      "createdAt": "2025-08-04T13:05:52.560Z"
+    },
+    {
+      "id": "1754312752563",
+      "name": "Land",
+      "subCategories": [
+        "General",
+        "Misc",
+        "harvest pit",
+        "iron work"
+      ],
+      "createdAt": "2025-08-04T13:05:52.560Z"
+    },
+    {
+      "id": "1754312752566",
+      "name": "Misc",
+      "subCategories": [
+        "General",
+        "Misc"
+      ],
+      "createdAt": "2025-08-04T13:05:52.560Z"
+    },
+    {
+      "id": "1754312752560",
+      "name": "Power",
+      "subCategories": [
+        "General"
+      ],
+      "createdAt": "2025-08-04T13:05:52.560Z"
+    },
+    {
+      "id": "1754312752561",
+      "name": "PreCast",
+      "subCategories": [
+        "General"
+      ],
+      "createdAt": "2025-08-04T13:05:52.560Z"
+    },
+    {
+      "id": "1754312752565",
+      "name": "Rooms",
+      "subCategories": [
+        "Doors",
+        "Electric",
+        "Misc",
+        "Plumbing",
+        "Solar",
+        "cement work",
+        "flooring",
+        "furniture",
+        "iron work",
+        "kitchen",
+        "painting",
+        "painting work",
+        "precast"
+      ],
+      "createdAt": "2025-08-04T13:05:52.560Z"
+    },
+    {
+      "id": "1754312752562",
+      "name": "Water",
+      "subCategories": [
+        "General"
+      ],
+      "createdAt": "2025-08-04T13:05:52.560Z"
+    }
+  ],
+  "lastUpdated": "2025-08-04T13:05:52.578Z"
+}

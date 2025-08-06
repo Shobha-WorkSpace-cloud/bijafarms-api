@@ -1,0 +1,56 @@
+[
+  {
+    "id": "1",
+    "animalId": "1",
+    "weight": 45,
+    "date": "2024-01-15",
+    "notes": "Regular checkup weight",
+    "recordedBy": "Farm Manager",
+    "createdAt": "2024-01-15T14:20:00.000Z"
+  },
+  {
+    "id": "2",
+    "animalId": "1",
+    "weight": 42,
+    "date": "2023-12-15",
+    "notes": "Monthly weight check",
+    "recordedBy": "Farm Manager",
+    "createdAt": "2023-12-15T10:30:00.000Z"
+  },
+  {
+    "id": "3",
+    "animalId": "2",
+    "weight": 55,
+    "date": "2024-01-10",
+    "notes": "Breeding season weight",
+    "recordedBy": "Veterinarian",
+    "createdAt": "2024-01-10T11:45:00.000Z"
+  },
+  {
+    "id": "4",
+    "animalId": "4",
+    "weight": 18,
+    "date": "2024-07-20",
+    "notes": "Kid growth tracking",
+    "recordedBy": "Farm Manager",
+    "createdAt": "2024-07-20T10:15:00.000Z"
+  },
+  {
+    "id": "5",
+    "animalId": "4",
+    "weight": 12,
+    "date": "2024-06-20",
+    "notes": "Monthly kid weight",
+    "recordedBy": "Farm Manager",
+    "createdAt": "2024-06-20T09:30:00.000Z"
+  },
+  {
+    "id": "6",
+    "animalId": "5",
+    "weight": 16,
+    "date": "2024-07-20",
+    "notes": "Kid growth tracking",
+    "recordedBy": "Farm Manager",
+    "createdAt": "2024-07-20T10:15:00.000Z"
+  }
+]
