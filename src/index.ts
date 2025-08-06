@@ -56,9 +56,17 @@ function createServer() {
 
   // Middleware
   const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:8080,https://shobha-workspace-cloud.github.io";
+  const allowedOrigins = corsOrigin.includes(',') ? corsOrigin.split(',') : [corsOrigin];
+  
   app.use(
     cors({
-      origin: corsOrigin.includes(',') ? corsOrigin.split(',') : corsOrigin,
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
       credentials: true,
     }),
   );
