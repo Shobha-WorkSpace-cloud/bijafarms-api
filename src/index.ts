@@ -54,11 +54,20 @@ import {
 function createServer() {
   const app = express();
 
-  // Middleware
-  const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:8080";
+  // CORS configuration
+  const allowedOrigins = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(",")
+    : ["http://localhost:8080"];
+
   app.use(
     cors({
-      origin: corsOrigin,
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error("Not allowed by CORS"));
+        }
+      },
       credentials: true,
     }),
   );
@@ -66,7 +75,9 @@ function createServer() {
   app.use(express.urlencoded({ extended: true }));
 
   console.log(`🚀 Server starting with CORS origin: ${corsOrigin}`);
-
+  console.log(
+    `Allowing origins: ${allowedOrigins.join(", ")}`,
+  );
   // API base path
   const apiBasePath = "/api";
 
