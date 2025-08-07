@@ -57,8 +57,8 @@ function createServer() {
   // CORS configuration
   const allowedOrigins = [
       'http://localhost:8080', // For local development
-      'https://shobha-workspace-cloud.github.io',
-      'https://shobha-workspace-cloud.github.io' // Add your GitHub Pages origin here
+      'http://localhost:10000', // For local render deployment
+      'https://shobha-workspace-cloud.github.io',// Add your GitHub Pages origin here
     ];
 
   app.use(
