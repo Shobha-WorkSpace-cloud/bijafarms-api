@@ -1,7 +1,7 @@
 {
   "categories": [
     {
-      "id": "1754312752564",
+      "id": "1",
       "name": "Business",
       "subCategories": [
         "General",
@@ -22,7 +22,7 @@
       "createdAt": "2025-08-04T13:05:52.560Z"
     },
     {
-      "id": "1754312752563",
+      "id": "2",
       "name": "Land",
       "subCategories": [
         "General",
@@ -33,7 +33,7 @@
       "createdAt": "2025-08-04T13:05:52.560Z"
     },
     {
-      "id": "1754312752566",
+      "id": "3",
       "name": "Misc",
       "subCategories": [
         "General",
@@ -42,7 +42,7 @@
       "createdAt": "2025-08-04T13:05:52.560Z"
     },
     {
-      "id": "1754312752560",
+      "id": "4",
       "name": "Power",
       "subCategories": [
         "General"
@@ -50,7 +50,7 @@
       "createdAt": "2025-08-04T13:05:52.560Z"
     },
     {
-      "id": "1754312752561",
+      "id": "5",
       "name": "PreCast",
       "subCategories": [
         "General"
@@ -58,7 +58,7 @@
       "createdAt": "2025-08-04T13:05:52.560Z"
     },
     {
-      "id": "1754312752565",
+      "id": "6",
       "name": "Rooms",
       "subCategories": [
         "Doors",
@@ -78,7 +78,7 @@
       "createdAt": "2025-08-04T13:05:52.560Z"
     },
     {
-      "id": "1754312752562",
+      "id": "7",
       "name": "Water",
       "subCategories": [
         "General"

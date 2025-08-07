@@ -29,6 +29,6 @@
       "@shared/*": ["./src/shared/*"]
     }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "migrate.cjs"],
   "exclude": ["node_modules", "dist"]
 }
