@@ -7,6 +7,10 @@ require("dotenv/config");
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const demo_1 = require("./routes/demo");
+const supabase_js_1 = require("@supabase/supabase-js");
+const supabaseUrl = 'https://dbmthxrbrlgkuhiznsul.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRibXRoeHJicmxna3VoaXpuc3VsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1NTU0ODEsImV4cCI6MjA3MDEzMTQ4MX0.b6gFaZcT5AdVPomr7U-5Y2S_slIqza_4zeCtkC5s8Kc';
+const supabase = (0, supabase_js_1.createClient)(supabaseUrl, supabaseKey);
 const expenses_1 = require("./routes/expenses");
 const sms_reminders_1 = require("./routes/sms-reminders");
 const tasks_1 = require("./routes/tasks");
@@ -14,15 +18,26 @@ const test_reminder_1 = require("./routes/test-reminder");
 const animals_1 = require("./routes/animals");
 function createServer() {
     const app = (0, express_1.default)();
-    // Middleware
-    const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:8080";
+    // CORS configuration
+    const allowedOrigins = [
+        'http://localhost:8080', // For local development
+        'http://localhost:10000', // For local render deployment
+        'https://shobha-workspace-cloud.github.io', // Add your GitHub Pages origin here
+    ];
     app.use((0, cors_1.default)({
-        origin: corsOrigin,
+        origin: (origin, callback) => {
+            if (!origin || allowedOrigins.includes(origin)) {
+                callback(null, true);
+            }
+            else {
+                callback(new Error("Not allowed by CORS"));
+            }
+        },
         credentials: true,
     }));
     app.use(express_1.default.json());
     app.use(express_1.default.urlencoded({ extended: true }));
-    console.log(`🚀 Server starting with CORS origin: ${corsOrigin}`);
+    console.log(`Allowing origins: ${allowedOrigins.join(", ")}`);
     // API base path
     const apiBasePath = "/api";
     // Helper function to register routes

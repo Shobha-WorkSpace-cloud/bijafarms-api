@@ -6,38 +6,47 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.populateCategories = exports.saveCategories = exports.getCategories = exports.backupExpenses = exports.bulkDeleteExpenses = exports.importExpenses = exports.deleteExpense = exports.updateExpense = exports.addExpense = exports.getExpenses = void 0;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
+const supabase_js_1 = require("@supabase/supabase-js");
+// Replace with your Supabase project URL and anon key
+const supabaseUrl = 'https://dbmthxrbrlgkuhiznsul.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRibXRoeHJicmxna3VoaXpuc3VsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1NTU0ODEsImV4cCI6MjA3MDEzMTQ4MX0.b6gFaZcT5AdVPomr7U-5Y2S_slIqza_4zeCtkC5s8Kc';
+const supabase = (0, supabase_js_1.createClient)(supabaseUrl, supabaseKey);
+// Ensure data directory exists
 const EXPENSES_FILE = path_1.default.join(process.cwd(), "src/data/expenses.json");
 const CATEGORIES_FILE = path_1.default.join(process.cwd(), "src/data/categories.json");
-// Ensure data directory exists
 const dataDir = path_1.default.dirname(EXPENSES_FILE);
 if (!fs_1.default.existsSync(dataDir)) {
     fs_1.default.mkdirSync(dataDir, { recursive: true });
 }
-// Helper function to read expenses from JSON file
-const readExpenses = () => {
+const readExpenses = async () => {
     try {
-        if (!fs_1.default.existsSync(EXPENSES_FILE)) {
-            return [];
+        const { data: expenses, error } = await supabase
+            .from('expenses')
+            .select('*');
+        if (error) {
+            console.error("Supabase error:", error);
+            // Fallback to file if Supabase fails
+            if (!fs_1.default.existsSync(EXPENSES_FILE))
+                return [];
+            const fileData = fs_1.default.readFileSync(EXPENSES_FILE, "utf8");
+            return JSON.parse(fileData);
         }
-        const data = fs_1.default.readFileSync(EXPENSES_FILE, "utf8");
-        const rawData = JSON.parse(data);
+        if (!expenses)
+            return [];
         // Transform the data to match the expected format and ensure unique IDs
-        return rawData.map((item, index) => {
-            // Handle date format - check if already in YYYY-MM-DD format or needs conversion from M/D/YYYY
+        return expenses.map((item, index) => {
+            // ...existing transformation code...
             let formattedDate = new Date().toISOString().split("T")[0];
             const dateStr = item.Date || item.date;
             if (dateStr) {
                 try {
-                    // Check if already in YYYY-MM-DD format
                     if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
                         formattedDate = dateStr;
                     }
                     else {
-                        // Try to parse M/D/YYYY format
                         const dateParts = dateStr.split("/");
                         if (dateParts.length === 3) {
                             const [month, day, year] = dateParts;
-                            // Ensure proper padding for month and day
                             const paddedMonth = month.padStart(2, "0");
                             const paddedDay = day.padStart(2, "0");
                             formattedDate = `${year}-${paddedMonth}-${paddedDay}`;
@@ -114,7 +123,7 @@ const getExpenses = (req, res) => {
 };
 exports.getExpenses = getExpenses;
 // POST /api/expenses - Add new expense
-const addExpense = (req, res) => {
+const addExpense = async (req, res) => {
     try {
         const newExpense = req.body;
         // Validate required fields
@@ -122,7 +131,7 @@ const addExpense = (req, res) => {
             return res.status(400).json({ error: "Missing required fields" });
         }
         // Generate auto-increment integer ID
-        const expenses = readExpenses();
+        const expenses = await readExpenses();
         let maxId = 0;
         // Find the highest existing ID
         expenses.forEach((expense) => {
@@ -144,11 +153,11 @@ const addExpense = (req, res) => {
 };
 exports.addExpense = addExpense;
 // PUT /api/expenses/:id - Update existing expense
-const updateExpense = (req, res) => {
+const updateExpense = async (req, res) => {
     try {
         const { id } = req.params;
         const updatedExpense = req.body;
-        const expenses = readExpenses();
+        const expenses = await readExpenses();
         const index = expenses.findIndex((expense) => expense.id === id);
         if (index === -1) {
             return res.status(404).json({ error: "Expense not found" });
@@ -164,10 +173,10 @@ const updateExpense = (req, res) => {
 };
 exports.updateExpense = updateExpense;
 // DELETE /api/expenses/:id - Delete expense
-const deleteExpense = (req, res) => {
+const deleteExpense = async (req, res) => {
     try {
         const { id } = req.params;
-        const expenses = readExpenses();
+        const expenses = await readExpenses();
         const index = expenses.findIndex((expense) => expense.id === id);
         if (index === -1) {
             return res.status(404).json({ error: "Expense not found" });
@@ -183,13 +192,13 @@ const deleteExpense = (req, res) => {
 };
 exports.deleteExpense = deleteExpense;
 // POST /api/expenses/import - Import multiple expenses
-const importExpenses = (req, res) => {
+const importExpenses = async (req, res) => {
     try {
         const importedExpenses = req.body;
         if (!Array.isArray(importedExpenses)) {
             return res.status(400).json({ error: "Expected array of expenses" });
         }
-        const expenses = readExpenses();
+        const expenses = await readExpenses();
         // Add imported expenses to the beginning
         const updatedExpenses = [...importedExpenses, ...expenses];
         writeExpenses(updatedExpenses);
@@ -205,13 +214,13 @@ const importExpenses = (req, res) => {
 };
 exports.importExpenses = importExpenses;
 // POST /api/expenses/bulk-delete - Delete multiple expenses
-const bulkDeleteExpenses = (req, res) => {
+const bulkDeleteExpenses = async (req, res) => {
     try {
         const { ids } = req.body;
         if (!Array.isArray(ids)) {
             return res.status(400).json({ error: "Expected array of IDs" });
         }
-        const expenses = readExpenses();
+        const expenses = await readExpenses();
         const filteredExpenses = expenses.filter((expense) => !ids.includes(expense.id));
         writeExpenses(filteredExpenses);
         res.json({
@@ -271,9 +280,9 @@ const saveCategories = (req, res) => {
 };
 exports.saveCategories = saveCategories;
 // POST /api/expenses/populate-categories - Populate categories from existing expense data
-const populateCategories = (req, res) => {
+const populateCategories = async (req, res) => {
     try {
-        const expenses = readExpenses();
+        const expenses = await readExpenses();
         const categoryMap = {};
         // Extract categories and sub-categories from existing expenses
         expenses.forEach((expense) => {

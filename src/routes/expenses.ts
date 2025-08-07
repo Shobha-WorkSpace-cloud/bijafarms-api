@@ -4,48 +4,54 @@ import path from "path";
 import {
   ExpenseRecord,
   CategoryManagementData,
+  CategoryConfig,
 } from "@shared/expense-types";
 import { createClient } from '@supabase/supabase-js';
 
 // Replace with your Supabase project URL and anon key
 const supabaseUrl = 'https://dbmthxrbrlgkuhiznsul.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFhYWEyYWQiLCJyZWYiOiJkaGJzYWxwaGF2d2dhdXNncWFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE2Nzc0MjU4MjIsImV4cCI6MTk5Mjk5NTgyMn0.p--0y8r6J5V7a4q6a_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a2_a to be more secure.
-
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRibXRoeHJicmxna3VoaXpuc3VsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1NTU0ODEsImV4cCI6MjA3MDEzMTQ4MX0.b6gFaZcT5AdVPomr7U-5Y2S_slIqza_4zeCtkC5s8Kc';
+const supabase = createClient(supabaseUrl, supabaseKey);
 // Ensure data directory exists
+const EXPENSES_FILE = path.join(process.cwd(), "src/data/expenses.json");
+const CATEGORIES_FILE = path.join(process.cwd(), "src/data/categories.json");
+
 const dataDir = path.dirname(EXPENSES_FILE);
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
-// Helper function to read expenses from JSON file
-const readExpenses = (): ExpenseRecord[] => {
+const readExpenses = async (): Promise<ExpenseRecord[]> => {
   try {
-    if (!fs.existsSync(EXPENSES_FILE)) {
-      return [];
+    const { data: expenses, error } = await supabase
+      .from('expenses')
+      .select('*');
+
+    if (error) {
+      console.error("Supabase error:", error);
+      // Fallback to file if Supabase fails
+      if (!fs.existsSync(EXPENSES_FILE)) return [];
+      const fileData = fs.readFileSync(EXPENSES_FILE, "utf8");
+      return JSON.parse(fileData);
     }
-    const data = fs.readFileSync(EXPENSES_FILE, "utf8");
-    const rawData = JSON.parse(data);
+
+    if (!expenses) return [];
 
     // Transform the data to match the expected format and ensure unique IDs
-    return rawData.map((item: any, index: number) => {
-      // Handle date format - check if already in YYYY-MM-DD format or needs conversion from M/D/YYYY
+    return expenses.map((item: any, index: number) => {
+      // ...existing transformation code...
       let formattedDate = new Date().toISOString().split("T")[0];
       const dateStr = item.Date || item.date;
       if (dateStr) {
         try {
-          // Check if already in YYYY-MM-DD format
           if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
             formattedDate = dateStr;
           } else {
-            // Try to parse M/D/YYYY format
             const dateParts = dateStr.split("/");
             if (dateParts.length === 3) {
               const [month, day, year] = dateParts;
-
-              // Ensure proper padding for month and day
               const paddedMonth = month.padStart(2, "0");
               const paddedDay = day.padStart(2, "0");
-
               formattedDate = `${year}-${paddedMonth}-${paddedDay}`;
             }
           }
@@ -119,7 +125,7 @@ export const getExpenses: RequestHandler = (req, res) => {
 };
 
 // POST /api/expenses - Add new expense
-export const addExpense: RequestHandler = (req, res) => {
+export const addExpense: RequestHandler = async (req, res) => {
   try {
     const newExpense: ExpenseRecord = req.body;
 
@@ -129,11 +135,11 @@ export const addExpense: RequestHandler = (req, res) => {
     }
 
     // Generate auto-increment integer ID
-    const expenses = readExpenses();
+    const expenses = await readExpenses();
     let maxId = 0;
 
     // Find the highest existing ID
-    expenses.forEach((expense) => {
+    expenses.forEach((expense:ExpenseRecord) => {
       const numId = parseInt(expense.id);
       if (!isNaN(numId) && numId > maxId) {
         maxId = numId;
@@ -153,12 +159,12 @@ export const addExpense: RequestHandler = (req, res) => {
 };
 
 // PUT /api/expenses/:id - Update existing expense
-export const updateExpense: RequestHandler = (req, res) => {
+export const updateExpense: RequestHandler = async (req, res) => {
   try {
     const { id } = req.params;
     const updatedExpense: ExpenseRecord = req.body;
 
-    const expenses = readExpenses();
+    const expenses = await readExpenses();
     const index = expenses.findIndex((expense) => expense.id === id);
 
     if (index === -1) {
@@ -176,11 +182,11 @@ export const updateExpense: RequestHandler = (req, res) => {
 };
 
 // DELETE /api/expenses/:id - Delete expense
-export const deleteExpense: RequestHandler = (req, res) => {
+export const deleteExpense: RequestHandler = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const expenses = readExpenses();
+    const expenses = await readExpenses();
     const index = expenses.findIndex((expense) => expense.id === id);
 
     if (index === -1) {
@@ -198,7 +204,7 @@ export const deleteExpense: RequestHandler = (req, res) => {
 };
 
 // POST /api/expenses/import - Import multiple expenses
-export const importExpenses: RequestHandler = (req, res) => {
+export const importExpenses: RequestHandler = async (req, res) => {
   try {
     const importedExpenses: ExpenseRecord[] = req.body;
 
@@ -206,7 +212,7 @@ export const importExpenses: RequestHandler = (req, res) => {
       return res.status(400).json({ error: "Expected array of expenses" });
     }
 
-    const expenses = readExpenses();
+    const expenses = await readExpenses();
 
     // Add imported expenses to the beginning
     const updatedExpenses = [...importedExpenses, ...expenses];
@@ -223,7 +229,7 @@ export const importExpenses: RequestHandler = (req, res) => {
 };
 
 // POST /api/expenses/bulk-delete - Delete multiple expenses
-export const bulkDeleteExpenses: RequestHandler = (req, res) => {
+export const bulkDeleteExpenses: RequestHandler = async (req, res) => {
   try {
     const { ids }: { ids: string[] } = req.body;
 
@@ -231,7 +237,7 @@ export const bulkDeleteExpenses: RequestHandler = (req, res) => {
       return res.status(400).json({ error: "Expected array of IDs" });
     }
 
-    const expenses = readExpenses();
+    const expenses = await readExpenses();
     const filteredExpenses = expenses.filter(
       (expense) => !ids.includes(expense.id),
     );
@@ -296,13 +302,13 @@ export const saveCategories: RequestHandler = (req, res) => {
 };
 
 // POST /api/expenses/populate-categories - Populate categories from existing expense data
-export const populateCategories: RequestHandler = (req, res) => {
+export const populateCategories: RequestHandler = async (req, res) => {
   try {
-    const expenses = readExpenses();
+    const expenses = await readExpenses();
     const categoryMap: { [key: string]: Set<string> } = {};
 
     // Extract categories and sub-categories from existing expenses
-    expenses.forEach((expense) => {
+    expenses.forEach((expense:ExpenseRecord) => {
       if (expense.category && expense.category.trim() !== "") {
         const category = expense.category.trim();
         const subCategory = expense.subCategory

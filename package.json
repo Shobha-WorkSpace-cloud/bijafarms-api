@@ -13,10 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-<<<<<<< HEAD
     "@supabase/supabase-js": "^2.53.0",
-=======
->>>>>>> refs/remotes/origin/master
     "cors": "^2.8.5",
     "dotenv": "^17.2.0",
     "exceljs": "^4.4.0",
