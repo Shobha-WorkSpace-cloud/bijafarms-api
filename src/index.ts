@@ -73,8 +73,6 @@ function createServer() {
   );
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
-
-  console.log(`🚀 Server starting with CORS origin: ${corsOrigin}`);
   console.log(
     `Allowing origins: ${allowedOrigins.join(", ")}`,
   );
