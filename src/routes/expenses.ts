@@ -6,12 +6,9 @@ import {
   CategoryManagementData,
   CategoryConfig,
 } from "@shared/expense-types";
-import { createClient } from '@supabase/supabase-js';
+import supabase from './supabaseClient';
+import { json } from "stream/consumers";
 
-// Replace with your Supabase project URL and anon key
-const supabaseUrl = 'https://dbmthxrbrlgkuhiznsul.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRibXRoeHJicmxna3VoaXpuc3VsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1NTU0ODEsImV4cCI6MjA3MDEzMTQ4MX0.b6gFaZcT5AdVPomr7U-5Y2S_slIqza_4zeCtkC5s8Kc';
-const supabase = createClient(supabaseUrl, supabaseKey);
 // Ensure data directory exists
 const EXPENSES_FILE = path.join(process.cwd(), "src/data/expenses.json");
 const CATEGORIES_FILE = path.join(process.cwd(), "src/data/categories.json");
@@ -23,10 +20,10 @@ if (!fs.existsSync(dataDir)) {
 
 const readExpenses = async (): Promise<ExpenseRecord[]> => {
   try {
-    const { data: expenses, error } = await supabase
+    const { data:expenses, error } = await supabase
       .from('expenses')
       .select('*');
-
+    
     if (error) {
       console.error("Supabase error:", error);
       // Fallback to file if Supabase fails
@@ -34,45 +31,9 @@ const readExpenses = async (): Promise<ExpenseRecord[]> => {
       const fileData = fs.readFileSync(EXPENSES_FILE, "utf8");
       return JSON.parse(fileData);
     }
-
     if (!expenses) return [];
-
-    // Transform the data to match the expected format and ensure unique IDs
-    return expenses.map((item: any, index: number) => {
-      // ...existing transformation code...
-      let formattedDate = new Date().toISOString().split("T")[0];
-      const dateStr = item.Date || item.date;
-      if (dateStr) {
-        try {
-          if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-            formattedDate = dateStr;
-          } else {
-            const dateParts = dateStr.split("/");
-            if (dateParts.length === 3) {
-              const [month, day, year] = dateParts;
-              const paddedMonth = month.padStart(2, "0");
-              const paddedDay = day.padStart(2, "0");
-              formattedDate = `${year}-${paddedMonth}-${paddedDay}`;
-            }
-          }
-        } catch (e) {
-          console.warn(`Invalid date format: ${dateStr}`);
-        }
-      }
-
-      return {
-        id: String(item.id || index + 1),
-        date: formattedDate,
-        type: item.Type || item.type || "Expense",
-        description: item.Description || item.description || "No description",
-        amount: parseFloat(item.Amount || item.amount || 0),
-        paidBy: item["Paid By"] || item.paidBy || "Unknown",
-        category: item.Category || item.category || "Other",
-        subCategory: item["Sub-Category"] || item.subCategory || "General",
-        source: item.Source || item.source || "Unknown",
-        notes: item.Notes || item.notes || "",
-      };
-    });
+    console.log(JSON.stringify(expenses));
+    return JSON.parse(JSON.stringify(expenses));
   } catch (error) {
     console.error("Error reading expenses:", error);
     return [];
@@ -114,9 +75,9 @@ const writeCategories = (data: CategoryManagementData): void => {
 };
 
 // GET /api/expenses - Get all expenses
-export const getExpenses: RequestHandler = (req, res) => {
+export const getExpenses: RequestHandler = async (req, res) => {
   try {
-    const expenses = readExpenses();
+    const expenses = await readExpenses();
     res.json(expenses);
   } catch (error) {
     console.error("Error getting expenses:", error);

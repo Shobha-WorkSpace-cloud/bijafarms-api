@@ -6,11 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.populateCategories = exports.saveCategories = exports.getCategories = exports.backupExpenses = exports.bulkDeleteExpenses = exports.importExpenses = exports.deleteExpense = exports.updateExpense = exports.addExpense = exports.getExpenses = void 0;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
-const supabase_js_1 = require("@supabase/supabase-js");
-// Replace with your Supabase project URL and anon key
-const supabaseUrl = 'https://dbmthxrbrlgkuhiznsul.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRibXRoeHJicmxna3VoaXpuc3VsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1NTU0ODEsImV4cCI6MjA3MDEzMTQ4MX0.b6gFaZcT5AdVPomr7U-5Y2S_slIqza_4zeCtkC5s8Kc';
-const supabase = (0, supabase_js_1.createClient)(supabaseUrl, supabaseKey);
+const supabaseClient_1 = __importDefault(require("./supabaseClient"));
 // Ensure data directory exists
 const EXPENSES_FILE = path_1.default.join(process.cwd(), "src/data/expenses.json");
 const CATEGORIES_FILE = path_1.default.join(process.cwd(), "src/data/categories.json");
@@ -20,7 +16,7 @@ if (!fs_1.default.existsSync(dataDir)) {
 }
 const readExpenses = async () => {
     try {
-        const { data: expenses, error } = await supabase
+        const { data: expenses, error } = await supabaseClient_1.default
             .from('expenses')
             .select('*');
         if (error) {
@@ -33,43 +29,8 @@ const readExpenses = async () => {
         }
         if (!expenses)
             return [];
-        // Transform the data to match the expected format and ensure unique IDs
-        return expenses.map((item, index) => {
-            // ...existing transformation code...
-            let formattedDate = new Date().toISOString().split("T")[0];
-            const dateStr = item.Date || item.date;
-            if (dateStr) {
-                try {
-                    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-                        formattedDate = dateStr;
-                    }
-                    else {
-                        const dateParts = dateStr.split("/");
-                        if (dateParts.length === 3) {
-                            const [month, day, year] = dateParts;
-                            const paddedMonth = month.padStart(2, "0");
-                            const paddedDay = day.padStart(2, "0");
-                            formattedDate = `${year}-${paddedMonth}-${paddedDay}`;
-                        }
-                    }
-                }
-                catch (e) {
-                    console.warn(`Invalid date format: ${dateStr}`);
-                }
-            }
-            return {
-                id: String(item.id || index + 1),
-                date: formattedDate,
-                type: item.Type || item.type || "Expense",
-                description: item.Description || item.description || "No description",
-                amount: parseFloat(item.Amount || item.amount || 0),
-                paidBy: item["Paid By"] || item.paidBy || "Unknown",
-                category: item.Category || item.category || "Other",
-                subCategory: item["Sub-Category"] || item.subCategory || "General",
-                source: item.Source || item.source || "Unknown",
-                notes: item.Notes || item.notes || "",
-            };
-        });
+        console.log(JSON.stringify(expenses));
+        return JSON.parse(JSON.stringify(expenses));
     }
     catch (error) {
         console.error("Error reading expenses:", error);
@@ -111,9 +72,9 @@ const writeCategories = (data) => {
     }
 };
 // GET /api/expenses - Get all expenses
-const getExpenses = (req, res) => {
+const getExpenses = async (req, res) => {
     try {
-        const expenses = readExpenses();
+        const expenses = await readExpenses();
         res.json(expenses);
     }
     catch (error) {
