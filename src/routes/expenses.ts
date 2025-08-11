@@ -31,8 +31,7 @@ const readExpenses = async (): Promise<ExpenseRecord[]> => {
       const fileData = fs.readFileSync(EXPENSES_FILE, "utf8");
       return JSON.parse(fileData);
     }
-    if (!expenses) return [];
-    console.log(JSON.stringify(expenses));
+    if (!expenses) return [];    
     return JSON.parse(JSON.stringify(expenses));
   } catch (error) {
     console.error("Error reading expenses:", error);
