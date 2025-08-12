@@ -7,7 +7,6 @@ import {
   CategoryConfig,
 } from "@shared/expense-types";
 import supabase from './supabaseClient';
-import { json } from "stream/consumers";
 
 // Ensure data directory exists
 const EXPENSES_FILE = path.join(process.cwd(), "src/data/expenses.json");
@@ -21,7 +20,7 @@ if (!fs.existsSync(dataDir)) {
 const readExpenses = async (): Promise<ExpenseRecord[]> => {
   try {
     const { data:expenses, error } = await supabase
-      .from('expenses')
+      .from('allexpenses')
       .select('*');
     
     if (error) {
@@ -33,10 +32,11 @@ const readExpenses = async (): Promise<ExpenseRecord[]> => {
     }
     if (!expenses) return [];    
     //return JSON.parse(JSON.stringify(expenses));
-
+        
     // Transform the data to match the expected format and ensure unique IDs
         return expenses.map((item, index) => {
             // ...existing transformation code...
+            
             let formattedDate = new Date().toISOString().split("T")[0];
             const dateStr = item.Date || item.date;
             if (dateStr) {
@@ -57,7 +57,8 @@ const readExpenses = async (): Promise<ExpenseRecord[]> => {
                 catch (e) {
                     console.warn(`Invalid date format: ${dateStr}`);
                 }
-            }
+
+                }
             return {
                 id: String(item.id || index + 1),
                 date: formattedDate,
