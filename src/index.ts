@@ -22,12 +22,6 @@ import {
   populateCategories,
 } from "./routes/expenses";
 import {
-  sendWhatsAppReminderEndpoint,
-  scheduleReminder,
-  sendTestWhatsApp,
-  sendTestWhatsAppSimple,
-} from "./routes/sms-reminders";
-import {
   getTasks,
   addTask,
   updateTask,
@@ -36,11 +30,6 @@ import {
   backupTasks,
   importTasks,
 } from "./routes/tasks";
-import {
-  createTestReminderTask,
-  checkReminderValidation,
-  cleanupTestTasks,
-} from "./routes/test-reminder";
 import {
   getAnimals,
   addAnimal,
@@ -119,15 +108,6 @@ function createServer() {
   registerRoute("post", "/expenses/categories", saveCategories);
   registerRoute("post", "/expenses/populate-categories", populateCategories);
 
-  // WhatsApp reminder routes
-  registerRoute(
-    "post",
-    "/send-whatsapp-reminder",
-    sendWhatsAppReminderEndpoint,
-  );
-  registerRoute("post", "/schedule-reminder", scheduleReminder);
-  registerRoute("post", "/test-whatsapp", sendTestWhatsApp);
-  registerRoute("post", "/test-whatsapp-simple", sendTestWhatsAppSimple);
 
   // Task management routes
   registerRoute("get", "/tasks", getTasks);
@@ -138,10 +118,6 @@ function createServer() {
   registerRoute("get", "/tasks/backup", backupTasks);
   registerRoute("post", "/tasks/import", importTasks);
 
-  // Test reminder validation routes
-  registerRoute("post", "/test-reminder-validation", createTestReminderTask);
-  registerRoute("get", "/test-reminder-validation", checkReminderValidation);
-  registerRoute("delete", "/test-reminder-validation", cleanupTestTasks);
 
   // Animal management routes
   registerRoute("get", "/animals", getAnimals);

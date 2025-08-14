@@ -14,7 +14,6 @@ interface Task {
   notes: string;
   createdAt: string;
   completedAt?: string;
-  reminderSent?: boolean;
 }
 
 // Helper function to read tasks from Supabase
@@ -40,8 +39,7 @@ const readTasks = async (): Promise<Task[]> => {
       status: task.status,
       dueDate: task.dueDate,
       assignedTo: task.assignedTo,
-      notes: task.notes,
-      reminderSent: task.reminderSent,
+      notes: task.notes,      
       completedAt: task.completedAt,
       createdAt: task.createdAt
     })) || [];
@@ -82,8 +80,7 @@ export const addTask: RequestHandler = async (req, res) => {
       status: newTask.status || "pending",
       dueDate: newTask.dueDate,
       assignedTo: newTask.assignedTo,
-      notes: newTask.notes,
-      reminderSent: false
+      notes: newTask.notes
     };
 
     const { data, error } = await supabase
@@ -109,7 +106,6 @@ export const addTask: RequestHandler = async (req, res) => {
       dueDate: data.dueDate,
       assignedTo: data.assignedTo,
       notes: data.notes,
-      reminderSent: data.reminderSent,
       completedAt: data.completedAt,
       createdAt: data.createdAt
     };
@@ -137,8 +133,7 @@ export const updateTask: RequestHandler = async (req, res) => {
       status: updatedTask.status,
       dueDate: updatedTask.dueDate,
       assignedTo: updatedTask.assignedTo,
-      notes: updatedTask.notes,
-      reminderSent: updatedTask.reminderSent
+      notes: updatedTask.notes
     };
 
     // If status is being changed to completed, set completedAt
@@ -173,7 +168,6 @@ export const updateTask: RequestHandler = async (req, res) => {
       dueDate: data.dueDate,
       assignedTo: data.assignedTo,
       notes: data.notes,
-      reminderSent: data.reminderSent,
       completedAt: data.completedAt,
       createdAt: data.createdAt
     };
@@ -217,7 +211,6 @@ export const deleteTask: RequestHandler = async (req, res) => {
       dueDate: data.dueDate,
       assignedTo: data.assignedTo,
       notes: data.notes,
-      reminderSent: data.reminderSent,
       completedAt: data.completedAt,
       createdAt: data.createdAt
     };
@@ -304,7 +297,6 @@ export const importTasks: RequestHandler = async (req, res) => {
       dueDate: task.dueDate,
       assignedTo: task.assignedTo,
       notes: task.notes,
-      reminderSent: task.reminderSent || false,
       completedAt: task.completedAt
     }));
 

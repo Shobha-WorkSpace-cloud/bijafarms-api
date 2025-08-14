@@ -11,7 +11,6 @@
     "assignedTo": "Dr. Sharma",
     "notes": "Check weight, temperature, and general condition",
     "createdAt": "2024-01-01",
-    "reminderSent": false,
     "completedAt": "2025-08-01"
   },
   {
@@ -25,7 +24,6 @@
     "dueDate": "2024-01-10",
     "assignedTo": "Farm Team",
     "notes": "Soil preparation completed, seeds ready",
-    "createdAt": "2024-01-01",
-    "reminderSent": false
+    "createdAt": "2024-01-01"
   }
 ]
