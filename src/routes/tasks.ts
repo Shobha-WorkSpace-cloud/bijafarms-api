@@ -106,7 +106,7 @@ export const addTask: RequestHandler = async (req, res) => {
       dueDate: data.due_date,
       assignedTo: data.assigned_to,
       notes: data.notes,
-      reminderSent: data.reminder_sent,
+
       completedAt: data.completed_at,
       createdAt: data.created_at
     };
@@ -170,7 +170,7 @@ export const updateTask: RequestHandler = async (req, res) => {
       dueDate: data.due_date,
       assignedTo: data.assigned_to,
       notes: data.notes,
-      reminderSent: data.reminder_sent,
+
       completedAt: data.completed_at,
       createdAt: data.created_at
     };
@@ -214,7 +214,7 @@ export const deleteTask: RequestHandler = async (req, res) => {
       dueDate: data.due_date,
       assignedTo: data.assigned_to,
       notes: data.notes,
-      reminderSent: data.reminder_sent,
+
       completedAt: data.completed_at,
       createdAt: data.created_at
     };
