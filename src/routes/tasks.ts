@@ -81,7 +81,6 @@ export const addTask: RequestHandler = async (req, res) => {
       due_date: newTask.dueDate,
       assigned_to: newTask.assignedTo,
       notes: newTask.notes,
-      reminder_sent: false
     };
 
     const { data, error } = await supabase
