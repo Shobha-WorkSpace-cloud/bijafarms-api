@@ -22,12 +22,6 @@ import {
   populateCategories,
 } from "./routes/expenses";
 import {
-  sendWhatsAppReminderEndpoint,
-  scheduleReminder,
-  sendTestWhatsApp,
-  sendTestWhatsAppSimple,
-} from "./routes/sms-reminders";
-import {
   getTasks,
   addTask,
   updateTask,
