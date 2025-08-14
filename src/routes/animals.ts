@@ -209,9 +209,9 @@ const readHealthRecords = async (animalId?: string): Promise<HealthRecord[]> => 
 };
 
 // Animal CRUD operations
-export const getAnimals: RequestHandler = (req, res) => {
+export const getAnimals: RequestHandler = async (req, res) => {
   try {
-    const animals = readAnimals();
+    const animals = await readAnimals();
     res.json(animals);
   } catch (error) {
     console.error("Error getting animals:", error);
@@ -219,79 +219,174 @@ export const getAnimals: RequestHandler = (req, res) => {
   }
 };
 
-export const addAnimal: RequestHandler = (req, res) => {
+export const addAnimal: RequestHandler = async (req, res) => {
   try {
     const newAnimal: AnimalRecord = req.body;
 
-    // Generate ID if not provided
-    if (!newAnimal.id) {
-      const animals = readAnimals();
-      let maxId = 0;
-      animals.forEach((animal) => {
-        const numId = parseInt(animal.id);
-        if (!isNaN(numId) && numId > maxId) {
-          maxId = numId;
-        }
-      });
-      newAnimal.id = (maxId + 1).toString();
+    // Prepare animal data for Supabase
+    const animalData = {
+      name: newAnimal.name,
+      type: newAnimal.type,
+      breed: newAnimal.breed,
+      gender: newAnimal.gender,
+      dateOfBirth: newAnimal.dateOfBirth,
+      photos: newAnimal.photos || [],
+      status: newAnimal.status || 'active',
+      currentWeight: newAnimal.currentWeight,
+      markings: newAnimal.markings,
+      purchaseDate: newAnimal.purchaseDate,
+      purchasePrice: newAnimal.purchasePrice,
+      purchaseLocation: newAnimal.purchaseLocation,
+      previousOwner: newAnimal.previousOwner,
+      insured: newAnimal.insured || false,
+      insuranceProvider: newAnimal.insuranceProvider,
+      insurancePolicyNumber: newAnimal.insurancePolicyNumber,
+      insuranceAmount: newAnimal.insuranceAmount,
+      insuranceExpiryDate: newAnimal.insuranceExpiryDate,
+      notes: newAnimal.notes
+    };
+
+    const { data, error } = await supabase
+      .from('animals')
+      .insert([animalData])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Supabase insert error:", error);
+      throw error;
     }
 
-    // Set timestamps
-    const now = new Date().toISOString();
-    newAnimal.createdAt = now;
-    newAnimal.updatedAt = now;
+    // Transform back to expected format
+    const returnAnimal = {
+      id: data.id.toString(),
+      name: data.name,
+      type: data.type,
+      breed: data.breed,
+      gender: data.gender,
+      dateOfBirth: data.dateOfBirth,
+      photos: data.photos || [],
+      status: data.status,
+      currentWeight: data.currentWeight,
+      markings: data.markings,
+      purchaseDate: data.purchaseDate,
+      purchasePrice: data.purchasePrice,
+      purchaseLocation: data.purchaseLocation,
+      previousOwner: data.previousOwner,
+      insured: data.insured,
+      insuranceProvider: data.insuranceProvider,
+      insurancePolicyNumber: data.insurancePolicyNumber,
+      insuranceAmount: data.insuranceAmount,
+      insuranceExpiryDate: data.insuranceExpiryDate,
+      notes: data.notes,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt
+    };
 
-    const animals = readAnimals();
-    animals.unshift(newAnimal);
-    writeAnimals(animals);
-
-    res.status(201).json(newAnimal);
+    res.status(201).json(returnAnimal);
   } catch (error) {
     console.error("Error adding animal:", error);
     res.status(500).json({ error: "Failed to add animal" });
   }
 };
 
-export const updateAnimal: RequestHandler = (req, res) => {
+export const updateAnimal: RequestHandler = async (req, res) => {
   try {
     const { id } = req.params;
     const updatedAnimal: AnimalRecord = req.body;
 
-    const animals = readAnimals();
-    const index = animals.findIndex((animal) => animal.id === id);
+    // Prepare update data
+    const updateData = {
+      name: updatedAnimal.name,
+      type: updatedAnimal.type,
+      breed: updatedAnimal.breed,
+      gender: updatedAnimal.gender,
+      dateOfBirth: updatedAnimal.dateOfBirth,
+      photos: updatedAnimal.photos || [],
+      status: updatedAnimal.status,
+      currentWeight: updatedAnimal.currentWeight,
+      markings: updatedAnimal.markings,
+      purchaseDate: updatedAnimal.purchaseDate,
+      purchasePrice: updatedAnimal.purchasePrice,
+      purchaseLocation: updatedAnimal.purchaseLocation,
+      previousOwner: updatedAnimal.previousOwner,
+      insured: updatedAnimal.insured,
+      insuranceProvider: updatedAnimal.insuranceProvider,
+      insurancePolicyNumber: updatedAnimal.insurancePolicyNumber,
+      insuranceAmount: updatedAnimal.insuranceAmount,
+      insuranceExpiryDate: updatedAnimal.insuranceExpiryDate,
+      saleDate: updatedAnimal.saleDate,
+      salePrice: updatedAnimal.salePrice,
+      buyerName: updatedAnimal.buyerName,
+      saleNotes: updatedAnimal.saleNotes,
+      notes: updatedAnimal.notes
+    };
 
-    if (index === -1) {
-      return res.status(404).json({ error: "Animal not found" });
+    const { data, error } = await supabase
+      .from('animals')
+      .update(updateData)
+      .eq('id', parseInt(id))
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return res.status(404).json({ error: "Animal not found" });
+      }
+      console.error("Supabase update error:", error);
+      throw error;
     }
 
-    // Preserve created date and update modified date
-    updatedAnimal.createdAt = animals[index].createdAt;
-    updatedAnimal.updatedAt = new Date().toISOString();
-    updatedAnimal.id = id;
+    // Transform back to expected format
+    const returnAnimal = {
+      id: data.id.toString(),
+      name: data.name,
+      type: data.type,
+      breed: data.breed,
+      gender: data.gender,
+      dateOfBirth: data.dateOfBirth,
+      photos: data.photos || [],
+      status: data.status,
+      currentWeight: data.currentWeight,
+      markings: data.markings,
+      purchaseDate: data.purchaseDate,
+      purchasePrice: data.purchasePrice,
+      purchaseLocation: data.purchaseLocation,
+      previousOwner: data.previousOwner,
+      insured: data.insured,
+      insuranceProvider: data.insuranceProvider,
+      insurancePolicyNumber: data.insurancePolicyNumber,
+      insuranceAmount: data.insuranceAmount,
+      insuranceExpiryDate: data.insuranceExpiryDate,
+      saleDate: data.saleDate,
+      salePrice: data.salePrice,
+      buyerName: data.buyerName,
+      saleNotes: data.saleNotes,
+      notes: data.notes,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt
+    };
 
-    animals[index] = updatedAnimal;
-    writeAnimals(animals);
-
-    res.json(animals[index]);
+    res.json(returnAnimal);
   } catch (error) {
     console.error("Error updating animal:", error);
     res.status(500).json({ error: "Failed to update animal" });
   }
 };
 
-export const deleteAnimal: RequestHandler = (req, res) => {
+export const deleteAnimal: RequestHandler = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const animals = readAnimals();
-    const index = animals.findIndex((animal) => animal.id === id);
+    const { error } = await supabase
+      .from('animals')
+      .delete()
+      .eq('id', parseInt(id));
 
-    if (index === -1) {
-      return res.status(404).json({ error: "Animal not found" });
+    if (error) {
+      console.error("Supabase delete error:", error);
+      throw error;
     }
-
-    animals.splice(index, 1);
-    writeAnimals(animals);
 
     res.json({ message: "Animal deleted successfully" });
   } catch (error) {
