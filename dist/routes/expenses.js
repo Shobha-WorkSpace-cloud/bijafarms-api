@@ -17,7 +17,7 @@ if (!fs_1.default.existsSync(dataDir)) {
 const readExpenses = async () => {
     try {
         const { data: expenses, error } = await supabaseClient_1.default
-            .from('expenses')
+            .from('allexpenses')
             .select('*');
         if (error) {
             console.error("Supabase error:", error);
@@ -29,8 +29,44 @@ const readExpenses = async () => {
         }
         if (!expenses)
             return [];
-        console.log(JSON.stringify(expenses));
-        return JSON.parse(JSON.stringify(expenses));
+        //return JSON.parse(JSON.stringify(expenses));
+        // Transform the data to match the expected format and ensure unique IDs
+        return expenses.map((item, index) => {
+            // ...existing transformation code...
+            let formattedDate = new Date().toISOString().split("T")[0];
+            const dateStr = item.Date || item.date;
+            if (dateStr) {
+                try {
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+                        formattedDate = dateStr;
+                    }
+                    else {
+                        const dateParts = dateStr.split("/");
+                        if (dateParts.length === 3) {
+                            const [month, day, year] = dateParts;
+                            const paddedMonth = month.padStart(2, "0");
+                            const paddedDay = day.padStart(2, "0");
+                            formattedDate = `${year}-${paddedMonth}-${paddedDay}`;
+                        }
+                    }
+                }
+                catch (e) {
+                    console.warn(`Invalid date format: ${dateStr}`);
+                }
+            }
+            return {
+                id: String(item.id || index + 1),
+                date: formattedDate,
+                type: item.Type || item.type || "Expense",
+                description: item.Description || item.description || "No description",
+                amount: parseFloat(item.Amount || item.amount || 0),
+                paidBy: item["Paid By"] || item.paidBy || "Unknown",
+                category: item.Category || item.category || "Other",
+                subCategory: item["Sub-Category"] || item.subCategory || "General",
+                source: item.Source || item.source || "Unknown",
+                notes: item.Notes || item.notes || "",
+            };
+        });
     }
     catch (error) {
         console.error("Error reading expenses:", error);
