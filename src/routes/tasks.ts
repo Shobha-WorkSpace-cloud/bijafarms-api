@@ -40,7 +40,6 @@ const readTasks = async (): Promise<Task[]> => {
       dueDate: task.due_date,
       assignedTo: task.assigned_to,
       notes: task.notes,
-      reminderSent: task.reminder_sent,
       completedAt: task.completed_at,
       createdAt: task.created_at
     })) || [];
