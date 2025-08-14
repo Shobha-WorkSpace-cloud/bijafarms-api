@@ -1,6 +1,4 @@
 import { RequestHandler } from "express";
-import fs from "fs";
-import path from "path";
 import {
   AnimalRecord,
   WeightRecord,
@@ -9,68 +7,85 @@ import {
   HealthRecord,
   AnimalSummary,
 } from "@shared/animal-types";
-const ANIMALS_FILE = path.join(process.cwd(), "src/data/animals.json");
-const WEIGHT_RECORDS_FILE = path.join(
-  process.cwd(),
-  "src/data/weight-records.json",
-);
-const BREEDING_RECORDS_FILE = path.join(
-  process.cwd(),
-  "src/data/breeding-records.json",
-);
-const VACCINATION_RECORDS_FILE = path.join(
-  process.cwd(),
-  "src/data/vaccination-records.json",
-);
-const HEALTH_RECORDS_FILE = path.join(
-  process.cwd(),
-  "src/data/health-records.json",
-);
+import supabase from './supabaseClient';
 
-// Ensure data directory exists
-const dataDir = path.dirname(ANIMALS_FILE);
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
-}
-
-// Helper functions for file operations
-const readAnimals = (): AnimalRecord[] => {
+// Helper functions for database operations
+const readAnimals = async (): Promise<AnimalRecord[]> => {
   try {
-    if (!fs.existsSync(ANIMALS_FILE)) return [];
-    const data = fs.readFileSync(ANIMALS_FILE, "utf8");
-    return JSON.parse(data);
+    const { data: animals, error } = await supabase
+      .from('animals')
+      .select('*')
+      .order('id', { ascending: false });
+
+    if (error) {
+      console.error("Supabase error:", error);
+      return [];
+    }
+
+    return animals?.map(animal => ({
+      id: animal.id.toString(),
+      name: animal.name,
+      type: animal.type,
+      breed: animal.breed,
+      gender: animal.gender,
+      dateOfBirth: animal.dateOfBirth,
+      photos: animal.photos || [],
+      status: animal.status,
+      currentWeight: animal.currentWeight,
+      markings: animal.markings,
+      purchaseDate: animal.purchaseDate,
+      purchasePrice: animal.purchasePrice,
+      purchaseLocation: animal.purchaseLocation,
+      previousOwner: animal.previousOwner,
+      insured: animal.insured,
+      insuranceProvider: animal.insuranceProvider,
+      insurancePolicyNumber: animal.insurancePolicyNumber,
+      insuranceAmount: animal.insuranceAmount,
+      insuranceExpiryDate: animal.insuranceExpiryDate,
+      saleDate: animal.saleDate,
+      salePrice: animal.salePrice,
+      buyerName: animal.buyerName,
+      saleNotes: animal.saleNotes,
+      notes: animal.notes,
+      createdAt: animal.createdAt,
+      updatedAt: animal.updatedAt
+    })) || [];
   } catch (error) {
     console.error("Error reading animals:", error);
     return [];
   }
 };
 
-const writeAnimals = (animals: AnimalRecord[]): void => {
+const readWeightRecords = async (animalId?: string): Promise<WeightRecord[]> => {
   try {
-    fs.writeFileSync(ANIMALS_FILE, JSON.stringify(animals, null, 2));
-  } catch (error) {
-    console.error("Error writing animals:", error);
-    throw error;
-  }
-};
+    let query = supabase
+      .from('weight_records')
+      .select('*')
+      .order('date', { ascending: false });
 
-const readWeightRecords = (): WeightRecord[] => {
-  try {
-    if (!fs.existsSync(WEIGHT_RECORDS_FILE)) return [];
-    const data = fs.readFileSync(WEIGHT_RECORDS_FILE, "utf8");
-    return JSON.parse(data);
+    if (animalId) {
+      query = query.eq('animalId', parseInt(animalId));
+    }
+
+    const { data: records, error } = await query;
+
+    if (error) {
+      console.error("Supabase error:", error);
+      return [];
+    }
+
+    return records?.map(record => ({
+      id: record.id.toString(),
+      animalId: record.animalId.toString(),
+      weight: record.weight,
+      date: record.date,
+      notes: record.notes,
+      recordedBy: record.recordedBy,
+      createdAt: record.createdAt
+    })) || [];
   } catch (error) {
     console.error("Error reading weight records:", error);
     return [];
-  }
-};
-
-const writeWeightRecords = (records: WeightRecord[]): void => {
-  try {
-    fs.writeFileSync(WEIGHT_RECORDS_FILE, JSON.stringify(records, null, 2));
-  } catch (error) {
-    console.error("Error writing weight records:", error);
-    throw error;
   }
 };
 
