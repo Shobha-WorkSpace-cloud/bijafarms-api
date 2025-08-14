@@ -396,15 +396,10 @@ export const deleteAnimal: RequestHandler = async (req, res) => {
 };
 
 // Weight record operations
-export const getWeightRecords: RequestHandler = (req, res) => {
+export const getWeightRecords: RequestHandler = async (req, res) => {
   try {
     const { animalId } = req.query;
-    let records = readWeightRecords();
-
-    if (animalId) {
-      records = records.filter((record) => record.animalId === animalId);
-    }
-
+    const records = await readWeightRecords(animalId as string);
     res.json(records);
   } catch (error) {
     console.error("Error getting weight records:", error);
@@ -412,17 +407,40 @@ export const getWeightRecords: RequestHandler = (req, res) => {
   }
 };
 
-export const addWeightRecord: RequestHandler = (req, res) => {
+export const addWeightRecord: RequestHandler = async (req, res) => {
   try {
     const newRecord: WeightRecord = req.body;
-    newRecord.id = Date.now().toString();
-    newRecord.createdAt = new Date().toISOString();
 
-    const records = readWeightRecords();
-    records.unshift(newRecord);
-    writeWeightRecords(records);
+    const recordData = {
+      animalId: parseInt(newRecord.animalId),
+      weight: newRecord.weight,
+      date: newRecord.date,
+      notes: newRecord.notes,
+      recordedBy: newRecord.recordedBy
+    };
 
-    res.status(201).json(newRecord);
+    const { data, error } = await supabase
+      .from('weight_records')
+      .insert([recordData])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Supabase insert error:", error);
+      throw error;
+    }
+
+    const returnRecord = {
+      id: data.id.toString(),
+      animalId: data.animalId.toString(),
+      weight: data.weight,
+      date: data.date,
+      notes: data.notes,
+      recordedBy: data.recordedBy,
+      createdAt: data.createdAt
+    };
+
+    res.status(201).json(returnRecord);
   } catch (error) {
     console.error("Error adding weight record:", error);
     res.status(500).json({ error: "Failed to add weight record" });
@@ -430,18 +448,10 @@ export const addWeightRecord: RequestHandler = (req, res) => {
 };
 
 // Breeding record operations
-export const getBreedingRecords: RequestHandler = (req, res) => {
+export const getBreedingRecords: RequestHandler = async (req, res) => {
   try {
     const { animalId } = req.query;
-    let records = readBreedingRecords();
-
-    if (animalId) {
-      records = records.filter(
-        (record) =>
-          record.motherId === animalId || record.fatherId === animalId,
-      );
-    }
-
+    const records = await readBreedingRecords(animalId as string);
     res.json(records);
   } catch (error) {
     console.error("Error getting breeding records:", error);
@@ -449,19 +459,55 @@ export const getBreedingRecords: RequestHandler = (req, res) => {
   }
 };
 
-export const addBreedingRecord: RequestHandler = (req, res) => {
+export const addBreedingRecord: RequestHandler = async (req, res) => {
   try {
     const newRecord: BreedingRecord = req.body;
-    newRecord.id = Date.now().toString();
-    const now = new Date().toISOString();
-    newRecord.createdAt = now;
-    newRecord.updatedAt = now;
 
-    const records = readBreedingRecords();
-    records.unshift(newRecord);
-    writeBreedingRecords(records);
+    const recordData = {
+      motherId: parseInt(newRecord.motherId),
+      fatherId: newRecord.fatherId ? parseInt(newRecord.fatherId) : null,
+      breedingDate: newRecord.breedingDate,
+      expectedDeliveryDate: newRecord.expectedDeliveryDate,
+      actualDeliveryDate: newRecord.actualDeliveryDate,
+      totalKids: newRecord.totalKids,
+      maleKids: newRecord.maleKids,
+      femaleKids: newRecord.femaleKids,
+      kid_details: newRecord.kidDetails,
+      breedingMethod: newRecord.breedingMethod,
+      veterinarianName: newRecord.veterinarianName,
+      notes: newRecord.notes
+    };
 
-    res.status(201).json(newRecord);
+    const { data, error } = await supabase
+      .from('breeding_records')
+      .insert([recordData])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Supabase insert error:", error);
+      throw error;
+    }
+
+    const returnRecord = {
+      id: data.id.toString(),
+      motherId: data.motherId?.toString(),
+      fatherId: data.fatherId?.toString(),
+      breedingDate: data.breedingDate,
+      expectedDeliveryDate: data.expectedDeliveryDate,
+      actualDeliveryDate: data.actualDeliveryDate,
+      totalKids: data.totalKids,
+      maleKids: data.maleKids,
+      femaleKids: data.femaleKids,
+      kidDetails: data.kid_details,
+      breedingMethod: data.breedingMethod,
+      veterinarianName: data.veterinarianName,
+      notes: data.notes,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt
+    };
+
+    res.status(201).json(returnRecord);
   } catch (error) {
     console.error("Error adding breeding record:", error);
     res.status(500).json({ error: "Failed to add breeding record" });
