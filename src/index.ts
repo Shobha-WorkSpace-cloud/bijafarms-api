@@ -31,11 +31,6 @@ import {
   importTasks,
 } from "./routes/tasks";
 import {
-  createTestReminderTask,
-  checkReminderValidation,
-  cleanupTestTasks,
-} from "./routes/test-reminder";
-import {
   getAnimals,
   addAnimal,
   updateAnimal,
