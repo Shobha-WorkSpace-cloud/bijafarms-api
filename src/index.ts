@@ -108,15 +108,6 @@ function createServer() {
   registerRoute("post", "/expenses/categories", saveCategories);
   registerRoute("post", "/expenses/populate-categories", populateCategories);
 
-  // WhatsApp reminder routes
-  registerRoute(
-    "post",
-    "/send-whatsapp-reminder",
-    sendWhatsAppReminderEndpoint,
-  );
-  registerRoute("post", "/schedule-reminder", scheduleReminder);
-  registerRoute("post", "/test-whatsapp", sendTestWhatsApp);
-  registerRoute("post", "/test-whatsapp-simple", sendTestWhatsAppSimple);
 
   // Task management routes
   registerRoute("get", "/tasks", getTasks);
