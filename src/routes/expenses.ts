@@ -5,6 +5,7 @@ import {
   CategoryConfig,
 } from "@shared/expense-types";
 import supabase from './supabaseClient';
+import logger from '../utils/errorLogger';
 
 const readExpenses = async (): Promise<ExpenseRecord[]> => {
   try {
