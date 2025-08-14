@@ -1,6 +1,5 @@
 import { RequestHandler } from "express";
-import fs from "fs";
-import path from "path";
+import supabase from './supabaseClient';
 
 interface Task {
   id: string;
@@ -17,42 +16,45 @@ interface Task {
   completedAt?: string;
   reminderSent?: boolean;
 }
-const TASKS_FILE = path.join(process.cwd(), "src/data/TaskTracker.json");
 
-// Ensure data directory exists
-const dataDir = path.dirname(TASKS_FILE);
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
-}
-
-// Helper function to read tasks from JSON file
-const readTasks = (): Task[] => {
+// Helper function to read tasks from Supabase
+const readTasks = async (): Promise<Task[]> => {
   try {
-    if (!fs.existsSync(TASKS_FILE)) {
+    const { data: tasks, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .order('id', { ascending: false });
+
+    if (error) {
+      console.error("Supabase error:", error);
       return [];
     }
-    const data = fs.readFileSync(TASKS_FILE, "utf8");
-    return JSON.parse(data);
+
+    return tasks?.map(task => ({
+      id: task.id.toString(),
+      title: task.title,
+      description: task.description,
+      category: task.category,
+      taskType: task.task_type,
+      priority: task.priority,
+      status: task.status,
+      dueDate: task.due_date,
+      assignedTo: task.assigned_to,
+      notes: task.notes,
+      reminderSent: task.reminder_sent,
+      completedAt: task.completed_at,
+      createdAt: task.created_at
+    })) || [];
   } catch (error) {
     console.error("Error reading tasks:", error);
     return [];
   }
 };
 
-// Helper function to write tasks to JSON file
-const writeTasks = (tasks: Task[]): void => {
-  try {
-    fs.writeFileSync(TASKS_FILE, JSON.stringify(tasks, null, 2));
-  } catch (error) {
-    console.error("Error writing tasks:", error);
-    throw error;
-  }
-};
-
 // GET /api/tasks - Get all tasks
-export const getTasks: RequestHandler = (req, res) => {
+export const getTasks: RequestHandler = async (req, res) => {
   try {
-    const tasks = readTasks();
+    const tasks = await readTasks();
     res.json(tasks);
   } catch (error) {
     console.error("Error getting tasks:", error);
