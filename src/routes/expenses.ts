@@ -74,16 +74,16 @@ const readExpenses = async (): Promise<ExpenseRecord[]> => {
 };
 
 // Helper function to write expenses to JSON file
-const writeExpenses = async (expenses: ExpenseRecord[]): Promise<void> => {
+const writeExpenses = async (newexpenses: ExpenseRecord[]): Promise<void> => {
   try {
-    if (!expenses || expenses.length === 0) {
+    if (!newexpenses || newexpenses.length === 0) {
       console.warn("No expenses to write");
       return;
     }
 
     // Process expenses with category lookup
-    for (const expense of expenses) {
-      console.log("Attempting to insert expense:", expense);
+    const expense = newexpenses[0]; // Assuming we are writing the first expense
+    console.log("Attempting to insert expense:", expense);
 
       // Look up category ID from categories table
       const { data: categoryData, error: categoryError } = await supabase
@@ -141,9 +141,7 @@ const writeExpenses = async (expenses: ExpenseRecord[]): Promise<void> => {
       }
 
       console.log("Successfully inserted expense:", data);
-    }
-
-    console.log("All expenses written successfully");  
+     
   } catch (error) {
     console.error("Error writing expenses:", error);
     throw error;

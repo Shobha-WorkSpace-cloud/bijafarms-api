@@ -69,66 +69,64 @@ const readExpenses = async () => {
     }
 };
 // Helper function to write expenses to JSON file
-const writeExpenses = async (expenses) => {
+const writeExpenses = async (newexpenses) => {
     try {
-        if (!expenses || expenses.length === 0) {
+        if (!newexpenses || newexpenses.length === 0) {
             console.warn("No expenses to write");
             return;
         }
         // Process expenses with category lookup
-        for (const expense of expenses) {
-            console.log("Attempting to insert expense:", expense);
-            // Look up category ID from categories table
-            const { data: categoryData, error: categoryError } = await supabaseClient_1.default
+        const expense = newexpenses[0]; // Assuming we are writing the first expense
+        console.log("Attempting to insert expense:", expense);
+        // Look up category ID from categories table
+        const { data: categoryData, error: categoryError } = await supabaseClient_1.default
+            .from('categories')
+            .select('id')
+            .eq('name', expense.category)
+            .single();
+        if (categoryError) {
+            console.error(`Error fetching category for ${expense.category}:`, categoryError);
+            const subCatgrs = [expense.subCategory];
+            // If category doesn't exist, create it
+            const { data: newCategory, error: createError } = await supabaseClient_1.default
                 .from('categories')
+                .insert([{ name: expense.category, subCategories: subCatgrs || "General" }])
                 .select('id')
-                .eq('name', expense.category)
                 .single();
-            if (categoryError) {
-                console.error(`Error fetching category for ${expense.category}:`, categoryError);
-                const subCatgrs = [expense.subCategory];
-                // If category doesn't exist, create it
-                const { data: newCategory, error: createError } = await supabaseClient_1.default
-                    .from('categories')
-                    .insert([{ name: expense.category, subCategories: subCatgrs || "General" }])
-                    .select('id')
-                    .single();
-                if (createError) {
-                    console.error(`Error creating category ${expense.category}:`, createError);
-                    throw createError;
-                }
-                console.log(`Created new category: ${expense.category} with ID: ${newCategory.id}`);
-                var categoryId = newCategory.id;
+            if (createError) {
+                console.error(`Error creating category ${expense.category}:`, createError);
+                throw createError;
             }
-            else {
-                var categoryId = categoryData.id;
-                console.log(`Found category ${expense.category} with ID: ${categoryId}`);
-            }
-            // Insert expense with categoryId
-            const expenseData = {
-                description: expense.description,
-                amount: expense.amount,
-                type: expense.type,
-                date: expense.date,
-                paidBy: expense.paidBy,
-                categoryId: categoryId,
-                subCategory: expense.subCategory || null,
-                source: expense.source || null,
-                notes: expense.notes || null,
-            };
-            console.log("Inserting expense data:", expenseData);
-            const { data, error: insertError } = await supabaseClient_1.default
-                .from('expenses')
-                .insert([expenseData])
-                .select();
-            if (insertError) {
-                console.error("Supabase insert error for expense:", expense.description);
-                console.error("Full error details:", JSON.stringify(insertError, null, 2));
-                throw insertError;
-            }
-            console.log("Successfully inserted expense:", data);
+            console.log(`Created new category: ${expense.category} with ID: ${newCategory.id}`);
+            var categoryId = newCategory.id;
         }
-        console.log("All expenses written successfully");
+        else {
+            var categoryId = categoryData.id;
+            console.log(`Found category ${expense.category} with ID: ${categoryId}`);
+        }
+        // Insert expense with categoryId
+        const expenseData = {
+            description: expense.description,
+            amount: expense.amount,
+            type: expense.type,
+            date: expense.date,
+            paidBy: expense.paidBy,
+            categoryId: categoryId,
+            subCategory: expense.subCategory || null,
+            source: expense.source || null,
+            notes: expense.notes || null,
+        };
+        console.log("Inserting expense data:", expenseData);
+        const { data, error: insertError } = await supabaseClient_1.default
+            .from('expenses')
+            .insert([expenseData])
+            .select();
+        if (insertError) {
+            console.error("Supabase insert error for expense:", expense.description);
+            console.error("Full error details:", JSON.stringify(insertError, null, 2));
+            throw insertError;
+        }
+        console.log("Successfully inserted expense:", data);
     }
     catch (error) {
         console.error("Error writing expenses:", error);
