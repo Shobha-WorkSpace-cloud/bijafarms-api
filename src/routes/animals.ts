@@ -515,15 +515,10 @@ export const addBreedingRecord: RequestHandler = async (req, res) => {
 };
 
 // Vaccination record operations
-export const getVaccinationRecords: RequestHandler = (req, res) => {
+export const getVaccinationRecords: RequestHandler = async (req, res) => {
   try {
     const { animalId } = req.query;
-    let records = readVaccinationRecords();
-
-    if (animalId) {
-      records = records.filter((record) => record.animalId === animalId);
-    }
-
+    const records = await readVaccinationRecords(animalId as string);
     res.json(records);
   } catch (error) {
     console.error("Error getting vaccination records:", error);
@@ -531,17 +526,52 @@ export const getVaccinationRecords: RequestHandler = (req, res) => {
   }
 };
 
-export const addVaccinationRecord: RequestHandler = (req, res) => {
+export const addVaccinationRecord: RequestHandler = async (req, res) => {
   try {
     const newRecord: VaccinationRecord = req.body;
-    newRecord.id = Date.now().toString();
-    newRecord.createdAt = new Date().toISOString();
 
-    const records = readVaccinationRecords();
-    records.unshift(newRecord);
-    writeVaccinationRecords(records);
+    const recordData = {
+      animalId: parseInt(newRecord.animalId),
+      vaccineName: newRecord.vaccineName,
+      vaccineType: newRecord.vaccineType,
+      administrationDate: newRecord.administrationDate,
+      nextDueDate: newRecord.nextDueDate,
+      batchNumber: newRecord.batchNumber,
+      veterinarianName: newRecord.veterinarianName,
+      dosage: newRecord.dosage,
+      administrationMethod: newRecord.administrationMethod,
+      cost: newRecord.cost,
+      notes: newRecord.notes
+    };
 
-    res.status(201).json(newRecord);
+    const { data, error } = await supabase
+      .from('vaccination_records')
+      .insert([recordData])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Supabase insert error:", error);
+      throw error;
+    }
+
+    const returnRecord = {
+      id: data.id.toString(),
+      animalId: data.animalId.toString(),
+      vaccineName: data.vaccineName,
+      vaccineType: data.vaccineType,
+      administrationDate: data.administrationDate,
+      nextDueDate: data.nextDueDate,
+      batchNumber: data.batchNumber,
+      veterinarianName: data.veterinarianName,
+      dosage: data.dosage,
+      administrationMethod: data.administrationMethod,
+      cost: data.cost,
+      notes: data.notes,
+      createdAt: data.createdAt
+    };
+
+    res.status(201).json(returnRecord);
   } catch (error) {
     console.error("Error adding vaccination record:", error);
     res.status(500).json({ error: "Failed to add vaccination record" });
@@ -549,15 +579,10 @@ export const addVaccinationRecord: RequestHandler = (req, res) => {
 };
 
 // Health record operations
-export const getHealthRecords: RequestHandler = (req, res) => {
+export const getHealthRecords: RequestHandler = async (req, res) => {
   try {
     const { animalId } = req.query;
-    let records = readHealthRecords();
-
-    if (animalId) {
-      records = records.filter((record) => record.animalId === animalId);
-    }
-
+    const records = await readHealthRecords(animalId as string);
     res.json(records);
   } catch (error) {
     console.error("Error getting health records:", error);
@@ -565,17 +590,52 @@ export const getHealthRecords: RequestHandler = (req, res) => {
   }
 };
 
-export const addHealthRecord: RequestHandler = (req, res) => {
+export const addHealthRecord: RequestHandler = async (req, res) => {
   try {
     const newRecord: HealthRecord = req.body;
-    newRecord.id = Date.now().toString();
-    newRecord.createdAt = new Date().toISOString();
 
-    const records = readHealthRecords();
-    records.unshift(newRecord);
-    writeHealthRecords(records);
+    const recordData = {
+      animalId: parseInt(newRecord.animalId),
+      recordType: newRecord.recordType,
+      date: newRecord.date,
+      description: newRecord.description,
+      veterinarianName: newRecord.veterinarianName,
+      diagnosis: newRecord.diagnosis,
+      treatment: newRecord.treatment,
+      medications: newRecord.medications,
+      cost: newRecord.cost,
+      nextCheckupDate: newRecord.nextCheckupDate,
+      notes: newRecord.notes
+    };
 
-    res.status(201).json(newRecord);
+    const { data, error } = await supabase
+      .from('health_records')
+      .insert([recordData])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Supabase insert error:", error);
+      throw error;
+    }
+
+    const returnRecord = {
+      id: data.id.toString(),
+      animalId: data.animalId.toString(),
+      recordType: data.recordType,
+      date: data.date,
+      description: data.description,
+      veterinarianName: data.veterinarianName,
+      diagnosis: data.diagnosis,
+      treatment: data.treatment,
+      medications: data.medications,
+      cost: data.cost,
+      nextCheckupDate: data.nextCheckupDate,
+      notes: data.notes,
+      createdAt: data.createdAt
+    };
+
+    res.status(201).json(returnRecord);
   } catch (error) {
     console.error("Error adding health record:", error);
     res.status(500).json({ error: "Failed to add health record" });
