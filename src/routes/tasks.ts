@@ -233,7 +233,7 @@ export const deleteTask: RequestHandler = async (req, res) => {
 };
 
 // POST /api/tasks/bulk-delete - Delete multiple tasks
-export const bulkDeleteTasks: RequestHandler = (req, res) => {
+export const bulkDeleteTasks: RequestHandler = async (req, res) => {
   try {
     const { ids }: { ids: string[] } = req.body;
 
@@ -241,13 +241,23 @@ export const bulkDeleteTasks: RequestHandler = (req, res) => {
       return res.status(400).json({ error: "Expected array of IDs" });
     }
 
-    const tasks = readTasks();
-    const filteredTasks = tasks.filter((task) => !ids.includes(task.id));
-    writeTasks(filteredTasks);
+    // Convert string IDs to integers
+    const numericIds = ids.map(id => parseInt(id));
+
+    const { data, error } = await supabase
+      .from('tasks')
+      .delete()
+      .in('id', numericIds)
+      .select();
+
+    if (error) {
+      console.error("Supabase bulk delete error:", error);
+      throw error;
+    }
 
     res.json({
       message: "Tasks deleted successfully",
-      deletedCount: tasks.length - filteredTasks.length,
+      deletedCount: data?.length || 0,
     });
   } catch (error) {
     console.error("Error bulk deleting tasks:", error);
@@ -256,9 +266,9 @@ export const bulkDeleteTasks: RequestHandler = (req, res) => {
 };
 
 // GET /api/tasks/backup - Create backup of tasks
-export const backupTasks: RequestHandler = (req, res) => {
+export const backupTasks: RequestHandler = async (req, res) => {
   try {
-    const tasks = readTasks();
+    const tasks = await readTasks();
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
     const backupFileName = `tasks-backup-${timestamp}.json`;
 
@@ -275,7 +285,7 @@ export const backupTasks: RequestHandler = (req, res) => {
 };
 
 // POST /api/tasks/import - Import multiple tasks
-export const importTasks: RequestHandler = (req, res) => {
+export const importTasks: RequestHandler = async (req, res) => {
   try {
     const importedTasks: Task[] = req.body;
 
@@ -283,15 +293,34 @@ export const importTasks: RequestHandler = (req, res) => {
       return res.status(400).json({ error: "Expected array of tasks" });
     }
 
-    const tasks = readTasks();
+    // Prepare tasks data for Supabase
+    const tasksData = importedTasks.map(task => ({
+      title: task.title,
+      description: task.description,
+      category: task.category,
+      task_type: task.taskType,
+      priority: task.priority || "medium",
+      status: task.status || "pending",
+      due_date: task.dueDate,
+      assigned_to: task.assignedTo,
+      notes: task.notes,
+      reminder_sent: task.reminderSent || false,
+      completed_at: task.completedAt
+    }));
 
-    // Add imported tasks to the beginning
-    const updatedTasks = [...importedTasks, ...tasks];
-    writeTasks(updatedTasks);
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert(tasksData)
+      .select();
+
+    if (error) {
+      console.error("Supabase import error:", error);
+      throw error;
+    }
 
     res.json({
       message: "Tasks imported successfully",
-      count: importedTasks.length,
+      count: data?.length || 0,
     });
   } catch (error) {
     console.error("Error importing tasks:", error);
