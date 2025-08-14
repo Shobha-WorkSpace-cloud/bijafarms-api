@@ -643,10 +643,10 @@ export const addHealthRecord: RequestHandler = async (req, res) => {
 };
 
 // Dashboard summary
-export const getAnimalSummary: RequestHandler = (req, res) => {
+export const getAnimalSummary: RequestHandler = async (req, res) => {
   try {
-    const animals = readAnimals();
-    const weightRecords = readWeightRecords();
+    const animals = await readAnimals();
+    const weightRecords = await readWeightRecords();
 
     const summary: AnimalSummary = {
       totalAnimals: animals.length,
@@ -703,13 +703,13 @@ export const getAnimalSummary: RequestHandler = (req, res) => {
 };
 
 // Backup and import operations
-export const backupAnimals: RequestHandler = (req, res) => {
+export const backupAnimals: RequestHandler = async (req, res) => {
   try {
-    const animals = readAnimals();
-    const weightRecords = readWeightRecords();
-    const breedingRecords = readBreedingRecords();
-    const vaccinationRecords = readVaccinationRecords();
-    const healthRecords = readHealthRecords();
+    const animals = await readAnimals();
+    const weightRecords = await readWeightRecords();
+    const breedingRecords = await readBreedingRecords();
+    const vaccinationRecords = await readVaccinationRecords();
+    const healthRecords = await readHealthRecords();
 
     const backup = {
       animals,
