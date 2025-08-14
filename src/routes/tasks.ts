@@ -34,14 +34,14 @@ const readTasks = async (): Promise<Task[]> => {
       title: task.title,
       description: task.description,
       category: task.category,
-      taskType: task.task_type,
+      taskType: task.taskType,
       priority: task.priority,
       status: task.status,
-      dueDate: task.due_date,
-      assignedTo: task.assigned_to,
-      notes: task.notes,
-      completedAt: task.completed_at,
-      createdAt: task.created_at
+      dueDate: task.dueDate,
+      assignedTo: task.assignedTo,
+      notes: task.notes,      
+      completedAt: task.completedAt,
+      createdAt: task.createdAt
     })) || [];
   } catch (error) {
     console.error("Error reading tasks:", error);
@@ -75,12 +75,12 @@ export const addTask: RequestHandler = async (req, res) => {
       title: newTask.title,
       description: newTask.description,
       category: newTask.category,
-      task_type: newTask.taskType,
+      taskType: newTask.taskType,
       priority: newTask.priority || "medium",
       status: newTask.status || "pending",
-      due_date: newTask.dueDate,
-      assigned_to: newTask.assignedTo,
-      notes: newTask.notes,
+      dueDate: newTask.dueDate,
+      assignedTo: newTask.assignedTo,
+      notes: newTask.notes
     };
 
     const { data, error } = await supabase
@@ -100,15 +100,14 @@ export const addTask: RequestHandler = async (req, res) => {
       title: data.title,
       description: data.description,
       category: data.category,
-      taskType: data.task_type,
+      taskType: data.taskType,
       priority: data.priority,
       status: data.status,
-      dueDate: data.due_date,
-      assignedTo: data.assigned_to,
+      dueDate: data.dueDate,
+      assignedTo: data.assignedTo,
       notes: data.notes,
-
-      completedAt: data.completed_at,
-      createdAt: data.created_at
+      completedAt: data.completedAt,
+      createdAt: data.createdAt
     };
 
     res.status(201).json(returnTask);
@@ -129,17 +128,17 @@ export const updateTask: RequestHandler = async (req, res) => {
       title: updatedTask.title,
       description: updatedTask.description,
       category: updatedTask.category,
-      task_type: updatedTask.taskType,
+      taskType: updatedTask.taskType,
       priority: updatedTask.priority,
       status: updatedTask.status,
-      due_date: updatedTask.dueDate,
-      assigned_to: updatedTask.assignedTo,
-      notes: updatedTask.notes,
+      dueDate: updatedTask.dueDate,
+      assignedTo: updatedTask.assignedTo,
+      notes: updatedTask.notes
     };
 
     // If status is being changed to completed, set completedAt
     if (updatedTask.status === "completed") {
-      updateData.completed_at = new Date().toISOString().split("T")[0];
+      updateData.completedAt = new Date().toISOString().split("T")[0];
     }
 
     const { data, error } = await supabase
@@ -163,15 +162,14 @@ export const updateTask: RequestHandler = async (req, res) => {
       title: data.title,
       description: data.description,
       category: data.category,
-      taskType: data.task_type,
+      taskType: data.taskType,
       priority: data.priority,
       status: data.status,
-      dueDate: data.due_date,
-      assignedTo: data.assigned_to,
+      dueDate: data.dueDate,
+      assignedTo: data.assignedTo,
       notes: data.notes,
-
-      completedAt: data.completed_at,
-      createdAt: data.created_at
+      completedAt: data.completedAt,
+      createdAt: data.createdAt
     };
 
     res.json(returnTask);
@@ -207,15 +205,14 @@ export const deleteTask: RequestHandler = async (req, res) => {
       title: data.title,
       description: data.description,
       category: data.category,
-      taskType: data.task_type,
+      taskType: data.taskType,
       priority: data.priority,
       status: data.status,
-      dueDate: data.due_date,
-      assignedTo: data.assigned_to,
+      dueDate: data.dueDate,
+      assignedTo: data.assignedTo,
       notes: data.notes,
-
-      completedAt: data.completed_at,
-      createdAt: data.created_at
+      completedAt: data.completedAt,
+      createdAt: data.createdAt
     };
 
     res.json({
@@ -294,13 +291,13 @@ export const importTasks: RequestHandler = async (req, res) => {
       title: task.title,
       description: task.description,
       category: task.category,
-      task_type: task.taskType,
+      taskType: task.taskType,
       priority: task.priority || "medium",
       status: task.status || "pending",
-      due_date: task.dueDate,
-      assigned_to: task.assignedTo,
+      dueDate: task.dueDate,
+      assignedTo: task.assignedTo,
       notes: task.notes,
-      completed_at: task.completedAt
+      completedAt: task.completedAt
     }));
 
     const { data, error } = await supabase

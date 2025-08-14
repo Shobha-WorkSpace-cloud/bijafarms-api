@@ -4,42 +4,43 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.importTasks = exports.backupTasks = exports.bulkDeleteTasks = exports.deleteTask = exports.updateTask = exports.addTask = exports.getTasks = void 0;
-const fs_1 = __importDefault(require("fs"));
-const path_1 = __importDefault(require("path"));
-const TASKS_FILE = path_1.default.join(process.cwd(), "src/data/TaskTracker.json");
-// Ensure data directory exists
-const dataDir = path_1.default.dirname(TASKS_FILE);
-if (!fs_1.default.existsSync(dataDir)) {
-    fs_1.default.mkdirSync(dataDir, { recursive: true });
-}
-// Helper function to read tasks from JSON file
-const readTasks = () => {
+const supabaseClient_1 = __importDefault(require("./supabaseClient"));
+// Helper function to read tasks from Supabase
+const readTasks = async () => {
     try {
-        if (!fs_1.default.existsSync(TASKS_FILE)) {
+        const { data: tasks, error } = await supabaseClient_1.default
+            .from('tasks')
+            .select('*')
+            .order('id', { ascending: false });
+        if (error) {
+            console.error("Supabase error:", error);
             return [];
         }
-        const data = fs_1.default.readFileSync(TASKS_FILE, "utf8");
-        return JSON.parse(data);
+        return tasks?.map(task => ({
+            id: task.id.toString(),
+            title: task.title,
+            description: task.description,
+            category: task.category,
+            taskType: task.taskType,
+            priority: task.priority,
+            status: task.status,
+            dueDate: task.dueDate,
+            assignedTo: task.assignedTo,
+            notes: task.notes,
+            reminderSent: task.reminderSent,
+            completedAt: task.completedAt,
+            createdAt: task.createdAt
+        })) || [];
     }
     catch (error) {
         console.error("Error reading tasks:", error);
         return [];
     }
 };
-// Helper function to write tasks to JSON file
-const writeTasks = (tasks) => {
-    try {
-        fs_1.default.writeFileSync(TASKS_FILE, JSON.stringify(tasks, null, 2));
-    }
-    catch (error) {
-        console.error("Error writing tasks:", error);
-        throw error;
-    }
-};
 // GET /api/tasks - Get all tasks
-const getTasks = (req, res) => {
+const getTasks = async (req, res) => {
     try {
-        const tasks = readTasks();
+        const tasks = await readTasks();
         res.json(tasks);
     }
     catch (error) {
@@ -49,26 +50,52 @@ const getTasks = (req, res) => {
 };
 exports.getTasks = getTasks;
 // POST /api/tasks - Add new task
-const addTask = (req, res) => {
+const addTask = async (req, res) => {
     try {
         const newTask = req.body;
         // Validate required fields
         if (!newTask.title || !newTask.dueDate || !newTask.assignedTo) {
             return res.status(400).json({ error: "Missing required fields" });
         }
-        // Generate ID if not provided
-        if (!newTask.id) {
-            newTask.id = Date.now().toString();
+        // Prepare task data for Supabase
+        const taskData = {
+            title: newTask.title,
+            description: newTask.description,
+            category: newTask.category,
+            taskType: newTask.taskType,
+            priority: newTask.priority || "medium",
+            status: newTask.status || "pending",
+            dueDate: newTask.dueDate,
+            assignedTo: newTask.assignedTo,
+            notes: newTask.notes,
+            reminderSent: false
+        };
+        const { data, error } = await supabaseClient_1.default
+            .from('tasks')
+            .insert([taskData])
+            .select()
+            .single();
+        if (error) {
+            console.error("Supabase insert error:", error);
+            throw error;
         }
-        // Set default values
-        newTask.status = newTask.status || "pending";
-        newTask.createdAt =
-            newTask.createdAt || new Date().toISOString().split("T")[0];
-        newTask.reminderSent = false;
-        const tasks = readTasks();
-        tasks.unshift(newTask); // Add to beginning of array
-        writeTasks(tasks);
-        res.status(201).json(newTask);
+        // Transform back to expected format
+        const returnTask = {
+            id: data.id.toString(),
+            title: data.title,
+            description: data.description,
+            category: data.category,
+            taskType: data.taskType,
+            priority: data.priority,
+            status: data.status,
+            dueDate: data.dueDate,
+            assignedTo: data.assignedTo,
+            notes: data.notes,
+            reminderSent: data.reminderSent,
+            completedAt: data.completedAt,
+            createdAt: data.createdAt
+        };
+        res.status(201).json(returnTask);
     }
     catch (error) {
         console.error("Error adding task:", error);
@@ -77,23 +104,57 @@ const addTask = (req, res) => {
 };
 exports.addTask = addTask;
 // PUT /api/tasks/:id - Update existing task
-const updateTask = (req, res) => {
+const updateTask = async (req, res) => {
     try {
         const { id } = req.params;
         const updatedTask = req.body;
-        const tasks = readTasks();
-        const index = tasks.findIndex((task) => task.id === id);
-        if (index === -1) {
-            return res.status(404).json({ error: "Task not found" });
-        }
+        // Prepare update data
+        const updateData = {
+            title: updatedTask.title,
+            description: updatedTask.description,
+            category: updatedTask.category,
+            taskType: updatedTask.taskType,
+            priority: updatedTask.priority,
+            status: updatedTask.status,
+            dueDate: updatedTask.dueDate,
+            assignedTo: updatedTask.assignedTo,
+            notes: updatedTask.notes,
+            reminderSent: updatedTask.reminderSent
+        };
         // If status is being changed to completed, set completedAt
-        if (updatedTask.status === "completed" &&
-            tasks[index].status !== "completed") {
-            updatedTask.completedAt = new Date().toISOString().split("T")[0];
+        if (updatedTask.status === "completed") {
+            updateData.completedAt = new Date().toISOString().split("T")[0];
         }
-        tasks[index] = { ...tasks[index], ...updatedTask, id };
-        writeTasks(tasks);
-        res.json(tasks[index]);
+        const { data, error } = await supabaseClient_1.default
+            .from('tasks')
+            .update(updateData)
+            .eq('id', parseInt(id))
+            .select()
+            .single();
+        if (error) {
+            if (error.code === 'PGRST116') {
+                return res.status(404).json({ error: "Task not found" });
+            }
+            console.error("Supabase update error:", error);
+            throw error;
+        }
+        // Transform back to expected format
+        const returnTask = {
+            id: data.id.toString(),
+            title: data.title,
+            description: data.description,
+            category: data.category,
+            taskType: data.taskType,
+            priority: data.priority,
+            status: data.status,
+            dueDate: data.dueDate,
+            assignedTo: data.assignedTo,
+            notes: data.notes,
+            reminderSent: data.reminderSent,
+            completedAt: data.completedAt,
+            createdAt: data.createdAt
+        };
+        res.json(returnTask);
     }
     catch (error) {
         console.error("Error updating task:", error);
@@ -102,16 +163,38 @@ const updateTask = (req, res) => {
 };
 exports.updateTask = updateTask;
 // DELETE /api/tasks/:id - Delete task
-const deleteTask = (req, res) => {
+const deleteTask = async (req, res) => {
     try {
         const { id } = req.params;
-        const tasks = readTasks();
-        const index = tasks.findIndex((task) => task.id === id);
-        if (index === -1) {
-            return res.status(404).json({ error: "Task not found" });
+        const { data, error } = await supabaseClient_1.default
+            .from('tasks')
+            .delete()
+            .eq('id', parseInt(id))
+            .select()
+            .single();
+        if (error) {
+            if (error.code === 'PGRST116') {
+                return res.status(404).json({ error: "Task not found" });
+            }
+            console.error("Supabase delete error:", error);
+            throw error;
         }
-        const deletedTask = tasks.splice(index, 1)[0];
-        writeTasks(tasks);
+        // Transform deleted task to expected format
+        const deletedTask = {
+            id: data.id.toString(),
+            title: data.title,
+            description: data.description,
+            category: data.category,
+            taskType: data.taskType,
+            priority: data.priority,
+            status: data.status,
+            dueDate: data.dueDate,
+            assignedTo: data.assignedTo,
+            notes: data.notes,
+            reminderSent: data.reminderSent,
+            completedAt: data.completedAt,
+            createdAt: data.createdAt
+        };
         res.json({
             message: "Task deleted successfully",
             deletedTask: deletedTask,
@@ -124,18 +207,26 @@ const deleteTask = (req, res) => {
 };
 exports.deleteTask = deleteTask;
 // POST /api/tasks/bulk-delete - Delete multiple tasks
-const bulkDeleteTasks = (req, res) => {
+const bulkDeleteTasks = async (req, res) => {
     try {
         const { ids } = req.body;
         if (!Array.isArray(ids)) {
             return res.status(400).json({ error: "Expected array of IDs" });
         }
-        const tasks = readTasks();
-        const filteredTasks = tasks.filter((task) => !ids.includes(task.id));
-        writeTasks(filteredTasks);
+        // Convert string IDs to integers
+        const numericIds = ids.map(id => parseInt(id));
+        const { data, error } = await supabaseClient_1.default
+            .from('tasks')
+            .delete()
+            .in('id', numericIds)
+            .select();
+        if (error) {
+            console.error("Supabase bulk delete error:", error);
+            throw error;
+        }
         res.json({
             message: "Tasks deleted successfully",
-            deletedCount: tasks.length - filteredTasks.length,
+            deletedCount: data?.length || 0,
         });
     }
     catch (error) {
@@ -145,9 +236,9 @@ const bulkDeleteTasks = (req, res) => {
 };
 exports.bulkDeleteTasks = bulkDeleteTasks;
 // GET /api/tasks/backup - Create backup of tasks
-const backupTasks = (req, res) => {
+const backupTasks = async (req, res) => {
     try {
-        const tasks = readTasks();
+        const tasks = await readTasks();
         const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
         const backupFileName = `tasks-backup-${timestamp}.json`;
         res.setHeader("Content-Type", "application/json");
@@ -161,19 +252,37 @@ const backupTasks = (req, res) => {
 };
 exports.backupTasks = backupTasks;
 // POST /api/tasks/import - Import multiple tasks
-const importTasks = (req, res) => {
+const importTasks = async (req, res) => {
     try {
         const importedTasks = req.body;
         if (!Array.isArray(importedTasks)) {
             return res.status(400).json({ error: "Expected array of tasks" });
         }
-        const tasks = readTasks();
-        // Add imported tasks to the beginning
-        const updatedTasks = [...importedTasks, ...tasks];
-        writeTasks(updatedTasks);
+        // Prepare tasks data for Supabase
+        const tasksData = importedTasks.map(task => ({
+            title: task.title,
+            description: task.description,
+            category: task.category,
+            taskType: task.taskType,
+            priority: task.priority || "medium",
+            status: task.status || "pending",
+            dueDate: task.dueDate,
+            assignedTo: task.assignedTo,
+            notes: task.notes,
+            reminderSent: task.reminderSent || false,
+            completedAt: task.completedAt
+        }));
+        const { data, error } = await supabaseClient_1.default
+            .from('tasks')
+            .insert(tasksData)
+            .select();
+        if (error) {
+            console.error("Supabase import error:", error);
+            throw error;
+        }
         res.json({
             message: "Tasks imported successfully",
-            count: importedTasks.length,
+            count: data?.length || 0,
         });
     }
     catch (error) {
