@@ -77,7 +77,7 @@ const insertExpense = async (expense: ExpenseRecord): Promise<any> => {
 
     let categoryId;
     if (categoryError) {
-      console.error(`Error fetching category for ${expense.category}:`, categoryError);
+      await logger.error(`Error fetching category for ${expense.category}`, "expenses.insertExpense", categoryError);
       const subCatgrs: string[] = [expense.subCategory];
       // If category doesn't exist, create it
       const { data: newCategory, error: createError } = await supabase
@@ -87,15 +87,15 @@ const insertExpense = async (expense: ExpenseRecord): Promise<any> => {
         .single();
 
       if (createError) {
-        console.error(`Error creating category ${expense.category}:`, createError);
+        await logger.error(`Error creating category ${expense.category}`, "expenses.insertExpense", createError);
         throw createError;
       }
 
-      console.log(`Created new category: ${expense.category} with ID: ${newCategory.id}`);
+      await logger.info(`Created new category: ${expense.category} with ID: ${newCategory.id}`, "expenses.insertExpense");
       categoryId = newCategory.id;
     } else {
       categoryId = categoryData.id;
-      console.log(`Found category ${expense.category} with ID: ${categoryId}`);
+      await logger.info(`Found category ${expense.category} with ID: ${categoryId}`, "expenses.insertExpense");
     }
 
     // Insert expense with categoryId
@@ -111,7 +111,7 @@ const insertExpense = async (expense: ExpenseRecord): Promise<any> => {
       notes: expense.notes || null,
     };
 
-    console.log("Inserting expense data:", expenseData);
+    await logger.info("Inserting expense data", "expenses.insertExpense", { amount: expenseData.amount, categoryId: expenseData.categoryId });
 
     const { data, error: insertError } = await supabase
       .from('expenses')
@@ -119,8 +119,7 @@ const insertExpense = async (expense: ExpenseRecord): Promise<any> => {
       .select();
 
     if (insertError) {
-      console.error("Supabase insert error for expense:", expense.description);
-      console.error("Full error details:", JSON.stringify(insertError, null, 2));
+      await logger.error("Supabase insert error for expense", "expenses.insertExpense", { description: expense.description, error: insertError });
       throw insertError;
     }
 
