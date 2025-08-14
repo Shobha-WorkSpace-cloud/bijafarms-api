@@ -1,21 +1,10 @@
 import { RequestHandler } from "express";
-import fs from "fs";
-import path from "path";
 import {
   ExpenseRecord,
   CategoryManagementData,
   CategoryConfig,
 } from "@shared/expense-types";
 import supabase from './supabaseClient';
-
-// Ensure data directory exists
-const EXPENSES_FILE = path.join(process.cwd(), "src/data/expenses.json");
-const CATEGORIES_FILE = path.join(process.cwd(), "src/data/categories.json");
-
-const dataDir = path.dirname(EXPENSES_FILE);
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
-}
 
 const readExpenses = async (): Promise<ExpenseRecord[]> => {
   try {
