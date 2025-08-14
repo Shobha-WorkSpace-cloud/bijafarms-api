@@ -300,7 +300,6 @@ export const importTasks: RequestHandler = async (req, res) => {
       due_date: task.dueDate,
       assigned_to: task.assignedTo,
       notes: task.notes,
-      reminder_sent: task.reminderSent || false,
       completed_at: task.completedAt
     }));
 
