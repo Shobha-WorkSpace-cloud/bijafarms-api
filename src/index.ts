@@ -118,10 +118,6 @@ function createServer() {
   registerRoute("get", "/tasks/backup", backupTasks);
   registerRoute("post", "/tasks/import", importTasks);
 
-  // Test reminder validation routes
-  registerRoute("post", "/test-reminder-validation", createTestReminderTask);
-  registerRoute("get", "/test-reminder-validation", checkReminderValidation);
-  registerRoute("delete", "/test-reminder-validation", cleanupTestTasks);
 
   // Animal management routes
   registerRoute("get", "/animals", getAnimals);
