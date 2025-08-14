@@ -96,7 +96,7 @@ function createServer() {
   // Root route - API information
   app.get("/", (_req: any, res: any) => {
     res.json({
-      name: "Aura Haven Backend API",
+      name: "Bijafarms Backend API",
       version: "1.0.0",
       description: "Backend API for Aura Haven farm management system",
       endpoints: {
