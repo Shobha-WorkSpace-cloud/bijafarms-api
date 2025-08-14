@@ -1,6 +1,5 @@
 import { RequestHandler } from "express";
-import fs from "fs";
-import path from "path";
+import supabase from './supabaseClient';
 
 interface Task {
   id: string;
@@ -17,42 +16,45 @@ interface Task {
   completedAt?: string;
   reminderSent?: boolean;
 }
-const TASKS_FILE = path.join(process.cwd(), "src/data/TaskTracker.json");
 
-// Ensure data directory exists
-const dataDir = path.dirname(TASKS_FILE);
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
-}
-
-// Helper function to read tasks from JSON file
-const readTasks = (): Task[] => {
+// Helper function to read tasks from Supabase
+const readTasks = async (): Promise<Task[]> => {
   try {
-    if (!fs.existsSync(TASKS_FILE)) {
+    const { data: tasks, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .order('id', { ascending: false });
+
+    if (error) {
+      console.error("Supabase error:", error);
       return [];
     }
-    const data = fs.readFileSync(TASKS_FILE, "utf8");
-    return JSON.parse(data);
+
+    return tasks?.map(task => ({
+      id: task.id.toString(),
+      title: task.title,
+      description: task.description,
+      category: task.category,
+      taskType: task.task_type,
+      priority: task.priority,
+      status: task.status,
+      dueDate: task.due_date,
+      assignedTo: task.assigned_to,
+      notes: task.notes,
+      reminderSent: task.reminder_sent,
+      completedAt: task.completed_at,
+      createdAt: task.created_at
+    })) || [];
   } catch (error) {
     console.error("Error reading tasks:", error);
     return [];
   }
 };
 
-// Helper function to write tasks to JSON file
-const writeTasks = (tasks: Task[]): void => {
-  try {
-    fs.writeFileSync(TASKS_FILE, JSON.stringify(tasks, null, 2));
-  } catch (error) {
-    console.error("Error writing tasks:", error);
-    throw error;
-  }
-};
-
 // GET /api/tasks - Get all tasks
-export const getTasks: RequestHandler = (req, res) => {
+export const getTasks: RequestHandler = async (req, res) => {
   try {
-    const tasks = readTasks();
+    const tasks = await readTasks();
     res.json(tasks);
   } catch (error) {
     console.error("Error getting tasks:", error);
@@ -61,7 +63,7 @@ export const getTasks: RequestHandler = (req, res) => {
 };
 
 // POST /api/tasks - Add new task
-export const addTask: RequestHandler = (req, res) => {
+export const addTask: RequestHandler = async (req, res) => {
   try {
     const newTask: Task = req.body;
 
@@ -70,22 +72,49 @@ export const addTask: RequestHandler = (req, res) => {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // Generate ID if not provided
-    if (!newTask.id) {
-      newTask.id = Date.now().toString();
+    // Prepare task data for Supabase
+    const taskData = {
+      title: newTask.title,
+      description: newTask.description,
+      category: newTask.category,
+      task_type: newTask.taskType,
+      priority: newTask.priority || "medium",
+      status: newTask.status || "pending",
+      due_date: newTask.dueDate,
+      assigned_to: newTask.assignedTo,
+      notes: newTask.notes,
+      reminder_sent: false
+    };
+
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert([taskData])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Supabase insert error:", error);
+      throw error;
     }
 
-    // Set default values
-    newTask.status = newTask.status || "pending";
-    newTask.createdAt =
-      newTask.createdAt || new Date().toISOString().split("T")[0];
-    newTask.reminderSent = false;
+    // Transform back to expected format
+    const returnTask = {
+      id: data.id.toString(),
+      title: data.title,
+      description: data.description,
+      category: data.category,
+      taskType: data.task_type,
+      priority: data.priority,
+      status: data.status,
+      dueDate: data.due_date,
+      assignedTo: data.assigned_to,
+      notes: data.notes,
+      reminderSent: data.reminder_sent,
+      completedAt: data.completed_at,
+      createdAt: data.created_at
+    };
 
-    const tasks = readTasks();
-    tasks.unshift(newTask); // Add to beginning of array
-    writeTasks(tasks);
-
-    res.status(201).json(newTask);
+    res.status(201).json(returnTask);
   } catch (error) {
     console.error("Error adding task:", error);
     res.status(500).json({ error: "Failed to add task" });
@@ -93,30 +122,63 @@ export const addTask: RequestHandler = (req, res) => {
 };
 
 // PUT /api/tasks/:id - Update existing task
-export const updateTask: RequestHandler = (req, res) => {
+export const updateTask: RequestHandler = async (req, res) => {
   try {
     const { id } = req.params;
     const updatedTask: Task = req.body;
 
-    const tasks = readTasks();
-    const index = tasks.findIndex((task) => task.id === id);
-
-    if (index === -1) {
-      return res.status(404).json({ error: "Task not found" });
-    }
+    // Prepare update data
+    const updateData: any = {
+      title: updatedTask.title,
+      description: updatedTask.description,
+      category: updatedTask.category,
+      task_type: updatedTask.taskType,
+      priority: updatedTask.priority,
+      status: updatedTask.status,
+      due_date: updatedTask.dueDate,
+      assigned_to: updatedTask.assignedTo,
+      notes: updatedTask.notes,
+      reminder_sent: updatedTask.reminderSent
+    };
 
     // If status is being changed to completed, set completedAt
-    if (
-      updatedTask.status === "completed" &&
-      tasks[index].status !== "completed"
-    ) {
-      updatedTask.completedAt = new Date().toISOString().split("T")[0];
+    if (updatedTask.status === "completed") {
+      updateData.completed_at = new Date().toISOString().split("T")[0];
     }
 
-    tasks[index] = { ...tasks[index], ...updatedTask, id };
-    writeTasks(tasks);
+    const { data, error } = await supabase
+      .from('tasks')
+      .update(updateData)
+      .eq('id', parseInt(id))
+      .select()
+      .single();
 
-    res.json(tasks[index]);
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return res.status(404).json({ error: "Task not found" });
+      }
+      console.error("Supabase update error:", error);
+      throw error;
+    }
+
+    // Transform back to expected format
+    const returnTask = {
+      id: data.id.toString(),
+      title: data.title,
+      description: data.description,
+      category: data.category,
+      taskType: data.task_type,
+      priority: data.priority,
+      status: data.status,
+      dueDate: data.due_date,
+      assignedTo: data.assigned_to,
+      notes: data.notes,
+      reminderSent: data.reminder_sent,
+      completedAt: data.completed_at,
+      createdAt: data.created_at
+    };
+
+    res.json(returnTask);
   } catch (error) {
     console.error("Error updating task:", error);
     res.status(500).json({ error: "Failed to update task" });
@@ -124,19 +186,41 @@ export const updateTask: RequestHandler = (req, res) => {
 };
 
 // DELETE /api/tasks/:id - Delete task
-export const deleteTask: RequestHandler = (req, res) => {
+export const deleteTask: RequestHandler = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const tasks = readTasks();
-    const index = tasks.findIndex((task) => task.id === id);
+    const { data, error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', parseInt(id))
+      .select()
+      .single();
 
-    if (index === -1) {
-      return res.status(404).json({ error: "Task not found" });
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return res.status(404).json({ error: "Task not found" });
+      }
+      console.error("Supabase delete error:", error);
+      throw error;
     }
 
-    const deletedTask = tasks.splice(index, 1)[0];
-    writeTasks(tasks);
+    // Transform deleted task to expected format
+    const deletedTask = {
+      id: data.id.toString(),
+      title: data.title,
+      description: data.description,
+      category: data.category,
+      taskType: data.task_type,
+      priority: data.priority,
+      status: data.status,
+      dueDate: data.due_date,
+      assignedTo: data.assigned_to,
+      notes: data.notes,
+      reminderSent: data.reminder_sent,
+      completedAt: data.completed_at,
+      createdAt: data.created_at
+    };
 
     res.json({
       message: "Task deleted successfully",
@@ -149,7 +233,7 @@ export const deleteTask: RequestHandler = (req, res) => {
 };
 
 // POST /api/tasks/bulk-delete - Delete multiple tasks
-export const bulkDeleteTasks: RequestHandler = (req, res) => {
+export const bulkDeleteTasks: RequestHandler = async (req, res) => {
   try {
     const { ids }: { ids: string[] } = req.body;
 
@@ -157,13 +241,23 @@ export const bulkDeleteTasks: RequestHandler = (req, res) => {
       return res.status(400).json({ error: "Expected array of IDs" });
     }
 
-    const tasks = readTasks();
-    const filteredTasks = tasks.filter((task) => !ids.includes(task.id));
-    writeTasks(filteredTasks);
+    // Convert string IDs to integers
+    const numericIds = ids.map(id => parseInt(id));
+
+    const { data, error } = await supabase
+      .from('tasks')
+      .delete()
+      .in('id', numericIds)
+      .select();
+
+    if (error) {
+      console.error("Supabase bulk delete error:", error);
+      throw error;
+    }
 
     res.json({
       message: "Tasks deleted successfully",
-      deletedCount: tasks.length - filteredTasks.length,
+      deletedCount: data?.length || 0,
     });
   } catch (error) {
     console.error("Error bulk deleting tasks:", error);
@@ -172,9 +266,9 @@ export const bulkDeleteTasks: RequestHandler = (req, res) => {
 };
 
 // GET /api/tasks/backup - Create backup of tasks
-export const backupTasks: RequestHandler = (req, res) => {
+export const backupTasks: RequestHandler = async (req, res) => {
   try {
-    const tasks = readTasks();
+    const tasks = await readTasks();
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
     const backupFileName = `tasks-backup-${timestamp}.json`;
 
@@ -191,7 +285,7 @@ export const backupTasks: RequestHandler = (req, res) => {
 };
 
 // POST /api/tasks/import - Import multiple tasks
-export const importTasks: RequestHandler = (req, res) => {
+export const importTasks: RequestHandler = async (req, res) => {
   try {
     const importedTasks: Task[] = req.body;
 
@@ -199,15 +293,34 @@ export const importTasks: RequestHandler = (req, res) => {
       return res.status(400).json({ error: "Expected array of tasks" });
     }
 
-    const tasks = readTasks();
+    // Prepare tasks data for Supabase
+    const tasksData = importedTasks.map(task => ({
+      title: task.title,
+      description: task.description,
+      category: task.category,
+      task_type: task.taskType,
+      priority: task.priority || "medium",
+      status: task.status || "pending",
+      due_date: task.dueDate,
+      assigned_to: task.assignedTo,
+      notes: task.notes,
+      reminder_sent: task.reminderSent || false,
+      completed_at: task.completedAt
+    }));
 
-    // Add imported tasks to the beginning
-    const updatedTasks = [...importedTasks, ...tasks];
-    writeTasks(updatedTasks);
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert(tasksData)
+      .select();
+
+    if (error) {
+      console.error("Supabase import error:", error);
+      throw error;
+    }
 
     res.json({
       message: "Tasks imported successfully",
-      count: importedTasks.length,
+      count: data?.length || 0,
     });
   } catch (error) {
     console.error("Error importing tasks:", error);
