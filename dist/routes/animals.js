@@ -4,128 +4,192 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.backupAnimals = exports.getAnimalSummary = exports.addHealthRecord = exports.getHealthRecords = exports.addVaccinationRecord = exports.getVaccinationRecords = exports.addBreedingRecord = exports.getBreedingRecords = exports.addWeightRecord = exports.getWeightRecords = exports.deleteAnimal = exports.updateAnimal = exports.addAnimal = exports.getAnimals = void 0;
-const fs_1 = __importDefault(require("fs"));
-const path_1 = __importDefault(require("path"));
-const ANIMALS_FILE = path_1.default.join(process.cwd(), "src/data/animals.json");
-const WEIGHT_RECORDS_FILE = path_1.default.join(process.cwd(), "src/data/weight-records.json");
-const BREEDING_RECORDS_FILE = path_1.default.join(process.cwd(), "src/data/breeding-records.json");
-const VACCINATION_RECORDS_FILE = path_1.default.join(process.cwd(), "src/data/vaccination-records.json");
-const HEALTH_RECORDS_FILE = path_1.default.join(process.cwd(), "src/data/health-records.json");
-// Ensure data directory exists
-const dataDir = path_1.default.dirname(ANIMALS_FILE);
-if (!fs_1.default.existsSync(dataDir)) {
-    fs_1.default.mkdirSync(dataDir, { recursive: true });
-}
-// Helper functions for file operations
-const readAnimals = () => {
+const supabaseClient_1 = __importDefault(require("./supabaseClient"));
+// Helper functions for database operations
+const readAnimals = async () => {
     try {
-        if (!fs_1.default.existsSync(ANIMALS_FILE))
+        const { data: animals, error } = await supabaseClient_1.default
+            .from('animals')
+            .select('*')
+            .order('id', { ascending: false });
+        if (error) {
+            console.error("Supabase error:", error);
             return [];
-        const data = fs_1.default.readFileSync(ANIMALS_FILE, "utf8");
-        return JSON.parse(data);
+        }
+        return animals?.map(animal => ({
+            id: animal.id.toString(),
+            name: animal.name,
+            type: animal.type,
+            breed: animal.breed,
+            gender: animal.gender,
+            dateOfBirth: animal.dateOfBirth,
+            photos: animal.photos || [],
+            status: animal.status,
+            currentWeight: animal.currentWeight,
+            markings: animal.markings,
+            purchaseDate: animal.purchaseDate,
+            purchasePrice: animal.purchasePrice,
+            purchaseLocation: animal.purchaseLocation,
+            previousOwner: animal.previousOwner,
+            insured: animal.insured,
+            insuranceProvider: animal.insuranceProvider,
+            insurancePolicyNumber: animal.insurancePolicyNumber,
+            insuranceAmount: animal.insuranceAmount,
+            insuranceExpiryDate: animal.insuranceExpiryDate,
+            saleDate: animal.saleDate,
+            salePrice: animal.salePrice,
+            buyerName: animal.buyerName,
+            saleNotes: animal.saleNotes,
+            notes: animal.notes,
+            createdAt: animal.createdAt,
+            updatedAt: animal.updatedAt
+        })) || [];
     }
     catch (error) {
         console.error("Error reading animals:", error);
         return [];
     }
 };
-const writeAnimals = (animals) => {
+const readWeightRecords = async (animalId) => {
     try {
-        fs_1.default.writeFileSync(ANIMALS_FILE, JSON.stringify(animals, null, 2));
-    }
-    catch (error) {
-        console.error("Error writing animals:", error);
-        throw error;
-    }
-};
-const readWeightRecords = () => {
-    try {
-        if (!fs_1.default.existsSync(WEIGHT_RECORDS_FILE))
+        let query = supabaseClient_1.default
+            .from('weight_records')
+            .select('*')
+            .order('date', { ascending: false });
+        if (animalId) {
+            query = query.eq('animalId', parseInt(animalId));
+        }
+        const { data: records, error } = await query;
+        if (error) {
+            console.error("Supabase error:", error);
             return [];
-        const data = fs_1.default.readFileSync(WEIGHT_RECORDS_FILE, "utf8");
-        return JSON.parse(data);
+        }
+        return records?.map(record => ({
+            id: record.id.toString(),
+            animalId: record.animalId.toString(),
+            weight: record.weight,
+            date: record.date,
+            notes: record.notes,
+            recordedBy: record.recordedBy,
+            createdAt: record.createdAt
+        })) || [];
     }
     catch (error) {
         console.error("Error reading weight records:", error);
         return [];
     }
 };
-const writeWeightRecords = (records) => {
+const readBreedingRecords = async (animalId) => {
     try {
-        fs_1.default.writeFileSync(WEIGHT_RECORDS_FILE, JSON.stringify(records, null, 2));
-    }
-    catch (error) {
-        console.error("Error writing weight records:", error);
-        throw error;
-    }
-};
-const readBreedingRecords = () => {
-    try {
-        if (!fs_1.default.existsSync(BREEDING_RECORDS_FILE))
+        let query = supabaseClient_1.default
+            .from('breeding_records')
+            .select('*')
+            .order('breedingDate', { ascending: false });
+        if (animalId) {
+            query = query.or(`motherId.eq.${animalId},fatherId.eq.${animalId}`);
+        }
+        const { data: records, error } = await query;
+        if (error) {
+            console.error("Supabase error:", error);
             return [];
-        const data = fs_1.default.readFileSync(BREEDING_RECORDS_FILE, "utf8");
-        return JSON.parse(data);
+        }
+        return records?.map(record => ({
+            id: record.id.toString(),
+            motherId: record.motherId?.toString(),
+            fatherId: record.fatherId?.toString(),
+            breedingDate: record.breedingDate,
+            expectedDeliveryDate: record.expectedDeliveryDate,
+            actualDeliveryDate: record.actualDeliveryDate,
+            totalKids: record.totalKids,
+            maleKids: record.maleKids,
+            femaleKids: record.femaleKids,
+            kidDetails: record.kid_details,
+            breedingMethod: record.breedingMethod,
+            veterinarianName: record.veterinarianName,
+            notes: record.notes,
+            createdAt: record.createdAt,
+            updatedAt: record.updatedAt
+        })) || [];
     }
     catch (error) {
         console.error("Error reading breeding records:", error);
         return [];
     }
 };
-const writeBreedingRecords = (records) => {
+const readVaccinationRecords = async (animalId) => {
     try {
-        fs_1.default.writeFileSync(BREEDING_RECORDS_FILE, JSON.stringify(records, null, 2));
-    }
-    catch (error) {
-        console.error("Error writing breeding records:", error);
-        throw error;
-    }
-};
-const readVaccinationRecords = () => {
-    try {
-        if (!fs_1.default.existsSync(VACCINATION_RECORDS_FILE))
+        let query = supabaseClient_1.default
+            .from('vaccination_records')
+            .select('*')
+            .order('administrationDate', { ascending: false });
+        if (animalId) {
+            query = query.eq('animalId', parseInt(animalId));
+        }
+        const { data: records, error } = await query;
+        if (error) {
+            console.error("Supabase error:", error);
             return [];
-        const data = fs_1.default.readFileSync(VACCINATION_RECORDS_FILE, "utf8");
-        return JSON.parse(data);
+        }
+        return records?.map(record => ({
+            id: record.id.toString(),
+            animalId: record.animalId.toString(),
+            vaccineName: record.vaccineName,
+            vaccineType: record.vaccineType,
+            administrationDate: record.administrationDate,
+            nextDueDate: record.nextDueDate,
+            batchNumber: record.batchNumber,
+            veterinarianName: record.veterinarianName,
+            dosage: record.dosage,
+            administrationMethod: record.administrationMethod,
+            cost: record.cost,
+            notes: record.notes,
+            createdAt: record.createdAt
+        })) || [];
     }
     catch (error) {
         console.error("Error reading vaccination records:", error);
         return [];
     }
 };
-const writeVaccinationRecords = (records) => {
+const readHealthRecords = async (animalId) => {
     try {
-        fs_1.default.writeFileSync(VACCINATION_RECORDS_FILE, JSON.stringify(records, null, 2));
-    }
-    catch (error) {
-        console.error("Error writing vaccination records:", error);
-        throw error;
-    }
-};
-const readHealthRecords = () => {
-    try {
-        if (!fs_1.default.existsSync(HEALTH_RECORDS_FILE))
+        let query = supabaseClient_1.default
+            .from('health_records')
+            .select('*')
+            .order('date', { ascending: false });
+        if (animalId) {
+            query = query.eq('animalId', parseInt(animalId));
+        }
+        const { data: records, error } = await query;
+        if (error) {
+            console.error("Supabase error:", error);
             return [];
-        const data = fs_1.default.readFileSync(HEALTH_RECORDS_FILE, "utf8");
-        return JSON.parse(data);
+        }
+        return records?.map(record => ({
+            id: record.id.toString(),
+            animalId: record.animalId.toString(),
+            recordType: record.recordType,
+            date: record.date,
+            description: record.description,
+            veterinarianName: record.veterinarianName,
+            diagnosis: record.diagnosis,
+            treatment: record.treatment,
+            medications: record.medications,
+            cost: record.cost,
+            nextCheckupDate: record.nextCheckupDate,
+            notes: record.notes,
+            createdAt: record.createdAt
+        })) || [];
     }
     catch (error) {
         console.error("Error reading health records:", error);
         return [];
     }
 };
-const writeHealthRecords = (records) => {
-    try {
-        fs_1.default.writeFileSync(HEALTH_RECORDS_FILE, JSON.stringify(records, null, 2));
-    }
-    catch (error) {
-        console.error("Error writing health records:", error);
-        throw error;
-    }
-};
 // Animal CRUD operations
-const getAnimals = (req, res) => {
+const getAnimals = async (req, res) => {
     try {
-        const animals = readAnimals();
+        const animals = await readAnimals();
         res.json(animals);
     }
     catch (error) {
@@ -134,29 +198,66 @@ const getAnimals = (req, res) => {
     }
 };
 exports.getAnimals = getAnimals;
-const addAnimal = (req, res) => {
+const addAnimal = async (req, res) => {
     try {
         const newAnimal = req.body;
-        // Generate ID if not provided
-        if (!newAnimal.id) {
-            const animals = readAnimals();
-            let maxId = 0;
-            animals.forEach((animal) => {
-                const numId = parseInt(animal.id);
-                if (!isNaN(numId) && numId > maxId) {
-                    maxId = numId;
-                }
-            });
-            newAnimal.id = (maxId + 1).toString();
+        // Prepare animal data for Supabase
+        const animalData = {
+            name: newAnimal.name,
+            type: newAnimal.type,
+            breed: newAnimal.breed,
+            gender: newAnimal.gender,
+            dateOfBirth: newAnimal.dateOfBirth,
+            photos: newAnimal.photos || [],
+            status: newAnimal.status || 'active',
+            currentWeight: newAnimal.currentWeight,
+            markings: newAnimal.markings,
+            purchaseDate: newAnimal.purchaseDate,
+            purchasePrice: newAnimal.purchasePrice,
+            purchaseLocation: newAnimal.purchaseLocation,
+            previousOwner: newAnimal.previousOwner,
+            insured: newAnimal.insured || false,
+            insuranceProvider: newAnimal.insuranceProvider,
+            insurancePolicyNumber: newAnimal.insurancePolicyNumber,
+            insuranceAmount: newAnimal.insuranceAmount,
+            insuranceExpiryDate: newAnimal.insuranceExpiryDate,
+            notes: newAnimal.notes
+        };
+        const { data, error } = await supabaseClient_1.default
+            .from('animals')
+            .insert([animalData])
+            .select()
+            .single();
+        if (error) {
+            console.error("Supabase insert error:", error);
+            throw error;
         }
-        // Set timestamps
-        const now = new Date().toISOString();
-        newAnimal.createdAt = now;
-        newAnimal.updatedAt = now;
-        const animals = readAnimals();
-        animals.unshift(newAnimal);
-        writeAnimals(animals);
-        res.status(201).json(newAnimal);
+        // Transform back to expected format
+        const returnAnimal = {
+            id: data.id.toString(),
+            name: data.name,
+            type: data.type,
+            breed: data.breed,
+            gender: data.gender,
+            dateOfBirth: data.dateOfBirth,
+            photos: data.photos || [],
+            status: data.status,
+            currentWeight: data.currentWeight,
+            markings: data.markings,
+            purchaseDate: data.purchaseDate,
+            purchasePrice: data.purchasePrice,
+            purchaseLocation: data.purchaseLocation,
+            previousOwner: data.previousOwner,
+            insured: data.insured,
+            insuranceProvider: data.insuranceProvider,
+            insurancePolicyNumber: data.insurancePolicyNumber,
+            insuranceAmount: data.insuranceAmount,
+            insuranceExpiryDate: data.insuranceExpiryDate,
+            notes: data.notes,
+            createdAt: data.createdAt,
+            updatedAt: data.updatedAt
+        };
+        res.status(201).json(returnAnimal);
     }
     catch (error) {
         console.error("Error adding animal:", error);
@@ -164,22 +265,79 @@ const addAnimal = (req, res) => {
     }
 };
 exports.addAnimal = addAnimal;
-const updateAnimal = (req, res) => {
+const updateAnimal = async (req, res) => {
     try {
         const { id } = req.params;
         const updatedAnimal = req.body;
-        const animals = readAnimals();
-        const index = animals.findIndex((animal) => animal.id === id);
-        if (index === -1) {
-            return res.status(404).json({ error: "Animal not found" });
+        // Prepare update data
+        const updateData = {
+            name: updatedAnimal.name,
+            type: updatedAnimal.type,
+            breed: updatedAnimal.breed,
+            gender: updatedAnimal.gender,
+            dateOfBirth: updatedAnimal.dateOfBirth,
+            photos: updatedAnimal.photos || [],
+            status: updatedAnimal.status,
+            currentWeight: updatedAnimal.currentWeight,
+            markings: updatedAnimal.markings,
+            purchaseDate: updatedAnimal.purchaseDate,
+            purchasePrice: updatedAnimal.purchasePrice,
+            purchaseLocation: updatedAnimal.purchaseLocation,
+            previousOwner: updatedAnimal.previousOwner,
+            insured: updatedAnimal.insured,
+            insuranceProvider: updatedAnimal.insuranceProvider,
+            insurancePolicyNumber: updatedAnimal.insurancePolicyNumber,
+            insuranceAmount: updatedAnimal.insuranceAmount,
+            insuranceExpiryDate: updatedAnimal.insuranceExpiryDate,
+            saleDate: updatedAnimal.saleDate,
+            salePrice: updatedAnimal.salePrice,
+            buyerName: updatedAnimal.buyerName,
+            saleNotes: updatedAnimal.saleNotes,
+            notes: updatedAnimal.notes
+        };
+        const { data, error } = await supabaseClient_1.default
+            .from('animals')
+            .update(updateData)
+            .eq('id', parseInt(id))
+            .select()
+            .single();
+        if (error) {
+            if (error.code === 'PGRST116') {
+                return res.status(404).json({ error: "Animal not found" });
+            }
+            console.error("Supabase update error:", error);
+            throw error;
         }
-        // Preserve created date and update modified date
-        updatedAnimal.createdAt = animals[index].createdAt;
-        updatedAnimal.updatedAt = new Date().toISOString();
-        updatedAnimal.id = id;
-        animals[index] = updatedAnimal;
-        writeAnimals(animals);
-        res.json(animals[index]);
+        // Transform back to expected format
+        const returnAnimal = {
+            id: data.id.toString(),
+            name: data.name,
+            type: data.type,
+            breed: data.breed,
+            gender: data.gender,
+            dateOfBirth: data.dateOfBirth,
+            photos: data.photos || [],
+            status: data.status,
+            currentWeight: data.currentWeight,
+            markings: data.markings,
+            purchaseDate: data.purchaseDate,
+            purchasePrice: data.purchasePrice,
+            purchaseLocation: data.purchaseLocation,
+            previousOwner: data.previousOwner,
+            insured: data.insured,
+            insuranceProvider: data.insuranceProvider,
+            insurancePolicyNumber: data.insurancePolicyNumber,
+            insuranceAmount: data.insuranceAmount,
+            insuranceExpiryDate: data.insuranceExpiryDate,
+            saleDate: data.saleDate,
+            salePrice: data.salePrice,
+            buyerName: data.buyerName,
+            saleNotes: data.saleNotes,
+            notes: data.notes,
+            createdAt: data.createdAt,
+            updatedAt: data.updatedAt
+        };
+        res.json(returnAnimal);
     }
     catch (error) {
         console.error("Error updating animal:", error);
@@ -187,16 +345,17 @@ const updateAnimal = (req, res) => {
     }
 };
 exports.updateAnimal = updateAnimal;
-const deleteAnimal = (req, res) => {
+const deleteAnimal = async (req, res) => {
     try {
         const { id } = req.params;
-        const animals = readAnimals();
-        const index = animals.findIndex((animal) => animal.id === id);
-        if (index === -1) {
-            return res.status(404).json({ error: "Animal not found" });
+        const { error } = await supabaseClient_1.default
+            .from('animals')
+            .delete()
+            .eq('id', parseInt(id));
+        if (error) {
+            console.error("Supabase delete error:", error);
+            throw error;
         }
-        animals.splice(index, 1);
-        writeAnimals(animals);
         res.json({ message: "Animal deleted successfully" });
     }
     catch (error) {
@@ -206,13 +365,10 @@ const deleteAnimal = (req, res) => {
 };
 exports.deleteAnimal = deleteAnimal;
 // Weight record operations
-const getWeightRecords = (req, res) => {
+const getWeightRecords = async (req, res) => {
     try {
         const { animalId } = req.query;
-        let records = readWeightRecords();
-        if (animalId) {
-            records = records.filter((record) => record.animalId === animalId);
-        }
+        const records = await readWeightRecords(animalId);
         res.json(records);
     }
     catch (error) {
@@ -221,15 +377,35 @@ const getWeightRecords = (req, res) => {
     }
 };
 exports.getWeightRecords = getWeightRecords;
-const addWeightRecord = (req, res) => {
+const addWeightRecord = async (req, res) => {
     try {
         const newRecord = req.body;
-        newRecord.id = Date.now().toString();
-        newRecord.createdAt = new Date().toISOString();
-        const records = readWeightRecords();
-        records.unshift(newRecord);
-        writeWeightRecords(records);
-        res.status(201).json(newRecord);
+        const recordData = {
+            animalId: parseInt(newRecord.animalId),
+            weight: newRecord.weight,
+            date: newRecord.date,
+            notes: newRecord.notes,
+            recordedBy: newRecord.recordedBy
+        };
+        const { data, error } = await supabaseClient_1.default
+            .from('weight_records')
+            .insert([recordData])
+            .select()
+            .single();
+        if (error) {
+            console.error("Supabase insert error:", error);
+            throw error;
+        }
+        const returnRecord = {
+            id: data.id.toString(),
+            animalId: data.animalId.toString(),
+            weight: data.weight,
+            date: data.date,
+            notes: data.notes,
+            recordedBy: data.recordedBy,
+            createdAt: data.createdAt
+        };
+        res.status(201).json(returnRecord);
     }
     catch (error) {
         console.error("Error adding weight record:", error);
@@ -238,13 +414,10 @@ const addWeightRecord = (req, res) => {
 };
 exports.addWeightRecord = addWeightRecord;
 // Breeding record operations
-const getBreedingRecords = (req, res) => {
+const getBreedingRecords = async (req, res) => {
     try {
         const { animalId } = req.query;
-        let records = readBreedingRecords();
-        if (animalId) {
-            records = records.filter((record) => record.motherId === animalId || record.fatherId === animalId);
-        }
+        const records = await readBreedingRecords(animalId);
         res.json(records);
     }
     catch (error) {
@@ -253,17 +426,50 @@ const getBreedingRecords = (req, res) => {
     }
 };
 exports.getBreedingRecords = getBreedingRecords;
-const addBreedingRecord = (req, res) => {
+const addBreedingRecord = async (req, res) => {
     try {
         const newRecord = req.body;
-        newRecord.id = Date.now().toString();
-        const now = new Date().toISOString();
-        newRecord.createdAt = now;
-        newRecord.updatedAt = now;
-        const records = readBreedingRecords();
-        records.unshift(newRecord);
-        writeBreedingRecords(records);
-        res.status(201).json(newRecord);
+        const recordData = {
+            motherId: parseInt(newRecord.motherId),
+            fatherId: newRecord.fatherId ? parseInt(newRecord.fatherId) : null,
+            breedingDate: newRecord.breedingDate,
+            expectedDeliveryDate: newRecord.expectedDeliveryDate,
+            actualDeliveryDate: newRecord.actualDeliveryDate,
+            totalKids: newRecord.totalKids,
+            maleKids: newRecord.maleKids,
+            femaleKids: newRecord.femaleKids,
+            kid_details: newRecord.kidDetails,
+            breedingMethod: newRecord.breedingMethod,
+            veterinarianName: newRecord.veterinarianName,
+            notes: newRecord.notes
+        };
+        const { data, error } = await supabaseClient_1.default
+            .from('breeding_records')
+            .insert([recordData])
+            .select()
+            .single();
+        if (error) {
+            console.error("Supabase insert error:", error);
+            throw error;
+        }
+        const returnRecord = {
+            id: data.id.toString(),
+            motherId: data.motherId?.toString(),
+            fatherId: data.fatherId?.toString(),
+            breedingDate: data.breedingDate,
+            expectedDeliveryDate: data.expectedDeliveryDate,
+            actualDeliveryDate: data.actualDeliveryDate,
+            totalKids: data.totalKids,
+            maleKids: data.maleKids,
+            femaleKids: data.femaleKids,
+            kidDetails: data.kid_details,
+            breedingMethod: data.breedingMethod,
+            veterinarianName: data.veterinarianName,
+            notes: data.notes,
+            createdAt: data.createdAt,
+            updatedAt: data.updatedAt
+        };
+        res.status(201).json(returnRecord);
     }
     catch (error) {
         console.error("Error adding breeding record:", error);
@@ -272,13 +478,10 @@ const addBreedingRecord = (req, res) => {
 };
 exports.addBreedingRecord = addBreedingRecord;
 // Vaccination record operations
-const getVaccinationRecords = (req, res) => {
+const getVaccinationRecords = async (req, res) => {
     try {
         const { animalId } = req.query;
-        let records = readVaccinationRecords();
-        if (animalId) {
-            records = records.filter((record) => record.animalId === animalId);
-        }
+        const records = await readVaccinationRecords(animalId);
         res.json(records);
     }
     catch (error) {
@@ -287,15 +490,47 @@ const getVaccinationRecords = (req, res) => {
     }
 };
 exports.getVaccinationRecords = getVaccinationRecords;
-const addVaccinationRecord = (req, res) => {
+const addVaccinationRecord = async (req, res) => {
     try {
         const newRecord = req.body;
-        newRecord.id = Date.now().toString();
-        newRecord.createdAt = new Date().toISOString();
-        const records = readVaccinationRecords();
-        records.unshift(newRecord);
-        writeVaccinationRecords(records);
-        res.status(201).json(newRecord);
+        const recordData = {
+            animalId: parseInt(newRecord.animalId),
+            vaccineName: newRecord.vaccineName,
+            vaccineType: newRecord.vaccineType,
+            administrationDate: newRecord.administrationDate,
+            nextDueDate: newRecord.nextDueDate,
+            batchNumber: newRecord.batchNumber,
+            veterinarianName: newRecord.veterinarianName,
+            dosage: newRecord.dosage,
+            administrationMethod: newRecord.administrationMethod,
+            cost: newRecord.cost,
+            notes: newRecord.notes
+        };
+        const { data, error } = await supabaseClient_1.default
+            .from('vaccination_records')
+            .insert([recordData])
+            .select()
+            .single();
+        if (error) {
+            console.error("Supabase insert error:", error);
+            throw error;
+        }
+        const returnRecord = {
+            id: data.id.toString(),
+            animalId: data.animalId.toString(),
+            vaccineName: data.vaccineName,
+            vaccineType: data.vaccineType,
+            administrationDate: data.administrationDate,
+            nextDueDate: data.nextDueDate,
+            batchNumber: data.batchNumber,
+            veterinarianName: data.veterinarianName,
+            dosage: data.dosage,
+            administrationMethod: data.administrationMethod,
+            cost: data.cost,
+            notes: data.notes,
+            createdAt: data.createdAt
+        };
+        res.status(201).json(returnRecord);
     }
     catch (error) {
         console.error("Error adding vaccination record:", error);
@@ -304,13 +539,10 @@ const addVaccinationRecord = (req, res) => {
 };
 exports.addVaccinationRecord = addVaccinationRecord;
 // Health record operations
-const getHealthRecords = (req, res) => {
+const getHealthRecords = async (req, res) => {
     try {
         const { animalId } = req.query;
-        let records = readHealthRecords();
-        if (animalId) {
-            records = records.filter((record) => record.animalId === animalId);
-        }
+        const records = await readHealthRecords(animalId);
         res.json(records);
     }
     catch (error) {
@@ -319,15 +551,47 @@ const getHealthRecords = (req, res) => {
     }
 };
 exports.getHealthRecords = getHealthRecords;
-const addHealthRecord = (req, res) => {
+const addHealthRecord = async (req, res) => {
     try {
         const newRecord = req.body;
-        newRecord.id = Date.now().toString();
-        newRecord.createdAt = new Date().toISOString();
-        const records = readHealthRecords();
-        records.unshift(newRecord);
-        writeHealthRecords(records);
-        res.status(201).json(newRecord);
+        const recordData = {
+            animalId: parseInt(newRecord.animalId),
+            recordType: newRecord.recordType,
+            date: newRecord.date,
+            description: newRecord.description,
+            veterinarianName: newRecord.veterinarianName,
+            diagnosis: newRecord.diagnosis,
+            treatment: newRecord.treatment,
+            medications: newRecord.medications,
+            cost: newRecord.cost,
+            nextCheckupDate: newRecord.nextCheckupDate,
+            notes: newRecord.notes
+        };
+        const { data, error } = await supabaseClient_1.default
+            .from('health_records')
+            .insert([recordData])
+            .select()
+            .single();
+        if (error) {
+            console.error("Supabase insert error:", error);
+            throw error;
+        }
+        const returnRecord = {
+            id: data.id.toString(),
+            animalId: data.animalId.toString(),
+            recordType: data.recordType,
+            date: data.date,
+            description: data.description,
+            veterinarianName: data.veterinarianName,
+            diagnosis: data.diagnosis,
+            treatment: data.treatment,
+            medications: data.medications,
+            cost: data.cost,
+            nextCheckupDate: data.nextCheckupDate,
+            notes: data.notes,
+            createdAt: data.createdAt
+        };
+        res.status(201).json(returnRecord);
     }
     catch (error) {
         console.error("Error adding health record:", error);
@@ -336,10 +600,10 @@ const addHealthRecord = (req, res) => {
 };
 exports.addHealthRecord = addHealthRecord;
 // Dashboard summary
-const getAnimalSummary = (req, res) => {
+const getAnimalSummary = async (req, res) => {
     try {
-        const animals = readAnimals();
-        const weightRecords = readWeightRecords();
+        const animals = await readAnimals();
+        const weightRecords = await readWeightRecords();
         const summary = {
             totalAnimals: animals.length,
             totalGoats: animals.filter((a) => a.type === "goat").length,
@@ -386,13 +650,13 @@ const getAnimalSummary = (req, res) => {
 };
 exports.getAnimalSummary = getAnimalSummary;
 // Backup and import operations
-const backupAnimals = (req, res) => {
+const backupAnimals = async (req, res) => {
     try {
-        const animals = readAnimals();
-        const weightRecords = readWeightRecords();
-        const breedingRecords = readBreedingRecords();
-        const vaccinationRecords = readVaccinationRecords();
-        const healthRecords = readHealthRecords();
+        const animals = await readAnimals();
+        const weightRecords = await readWeightRecords();
+        const breedingRecords = await readBreedingRecords();
+        const vaccinationRecords = await readVaccinationRecords();
+        const healthRecords = await readHealthRecords();
         const backup = {
             animals,
             weightRecords,

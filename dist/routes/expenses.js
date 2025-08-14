@@ -4,16 +4,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.populateCategories = exports.saveCategories = exports.getCategories = exports.backupExpenses = exports.bulkDeleteExpenses = exports.importExpenses = exports.deleteExpense = exports.updateExpense = exports.addExpense = exports.getExpenses = void 0;
-const fs_1 = __importDefault(require("fs"));
-const path_1 = __importDefault(require("path"));
 const supabaseClient_1 = __importDefault(require("./supabaseClient"));
-// Ensure data directory exists
-const EXPENSES_FILE = path_1.default.join(process.cwd(), "src/data/expenses.json");
-const CATEGORIES_FILE = path_1.default.join(process.cwd(), "src/data/categories.json");
-const dataDir = path_1.default.dirname(EXPENSES_FILE);
-if (!fs_1.default.existsSync(dataDir)) {
-    fs_1.default.mkdirSync(dataDir, { recursive: true });
-}
+const errorLogger_1 = __importDefault(require("../utils/errorLogger"));
 const readExpenses = async () => {
     try {
         const { data: expenses, error } = await supabaseClient_1.default
@@ -68,15 +60,9 @@ const readExpenses = async () => {
         return [];
     }
 };
-// Helper function to write expenses to JSON file
-const writeExpenses = async (newexpenses) => {
+// Helper function to insert a single expense
+const insertExpense = async (expense) => {
     try {
-        if (!newexpenses || newexpenses.length === 0) {
-            console.warn("No expenses to write");
-            return;
-        }
-        // Process expenses with category lookup
-        const expense = newexpenses[0]; // Assuming we are writing the first expense
         console.log("Attempting to insert expense:", expense);
         // Look up category ID from categories table
         const { data: categoryData, error: categoryError } = await supabaseClient_1.default
@@ -84,25 +70,26 @@ const writeExpenses = async (newexpenses) => {
             .select('id')
             .eq('name', expense.category)
             .single();
+        let categoryId;
         if (categoryError) {
-            console.error(`Error fetching category for ${expense.category}:`, categoryError);
+            await errorLogger_1.default.error(`Error fetching category for ${expense.category}`, "expenses.insertExpense", categoryError);
             const subCatgrs = [expense.subCategory];
             // If category doesn't exist, create it
             const { data: newCategory, error: createError } = await supabaseClient_1.default
                 .from('categories')
-                .insert([{ name: expense.category, subCategories: subCatgrs || "General" }])
+                .insert([{ name: expense.category, subCategories: subCatgrs || ["General"] }])
                 .select('id')
                 .single();
             if (createError) {
-                console.error(`Error creating category ${expense.category}:`, createError);
+                await errorLogger_1.default.error(`Error creating category ${expense.category}`, "expenses.insertExpense", createError);
                 throw createError;
             }
-            console.log(`Created new category: ${expense.category} with ID: ${newCategory.id}`);
-            var categoryId = newCategory.id;
+            await errorLogger_1.default.info(`Created new category: ${expense.category} with ID: ${newCategory.id}`, "expenses.insertExpense");
+            categoryId = newCategory.id;
         }
         else {
-            var categoryId = categoryData.id;
-            console.log(`Found category ${expense.category} with ID: ${categoryId}`);
+            categoryId = categoryData.id;
+            await errorLogger_1.default.info(`Found category ${expense.category} with ID: ${categoryId}`, "expenses.insertExpense");
         }
         // Insert expense with categoryId
         const expenseData = {
@@ -116,41 +103,74 @@ const writeExpenses = async (newexpenses) => {
             source: expense.source || null,
             notes: expense.notes || null,
         };
-        console.log("Inserting expense data:", expenseData);
+        await errorLogger_1.default.info("Inserting expense data", "expenses.insertExpense", { amount: expenseData.amount, categoryId: expenseData.categoryId });
         const { data, error: insertError } = await supabaseClient_1.default
             .from('expenses')
             .insert([expenseData])
             .select();
         if (insertError) {
-            console.error("Supabase insert error for expense:", expense.description);
-            console.error("Full error details:", JSON.stringify(insertError, null, 2));
+            await errorLogger_1.default.error("Supabase insert error for expense", "expenses.insertExpense", { description: expense.description, error: insertError });
             throw insertError;
         }
         console.log("Successfully inserted expense:", data);
+        return data[0];
     }
     catch (error) {
-        console.error("Error writing expenses:", error);
+        console.error("Error inserting expense:", error);
         throw error;
     }
 };
-// Helper function to read categories from JSON file
-const readCategories = () => {
+// Helper function to read categories from Supabase
+const readCategories = async () => {
     try {
-        if (!fs_1.default.existsSync(CATEGORIES_FILE)) {
+        const { data: categories, error } = await supabaseClient_1.default
+            .from('categories')
+            .select('*')
+            .order('id', { ascending: true });
+        if (error) {
+            console.error("Supabase error:", error);
             return { categories: [], lastUpdated: new Date().toISOString() };
         }
-        const data = fs_1.default.readFileSync(CATEGORIES_FILE, "utf8");
-        return JSON.parse(data);
+        const categoryConfigs = categories?.map(cat => ({
+            id: cat.id.toString(),
+            name: cat.name,
+            subCategories: cat.subCategories || [],
+            createdAt: cat.createdAt || new Date().toISOString()
+        })) || [];
+        return {
+            categories: categoryConfigs,
+            lastUpdated: new Date().toISOString()
+        };
     }
     catch (error) {
         console.error("Error reading categories:", error);
         return { categories: [], lastUpdated: new Date().toISOString() };
     }
 };
-// Helper function to write categories to JSON file
-const writeCategories = (data) => {
+// Helper function to write categories to Supabase
+const writeCategories = async (data) => {
     try {
-        fs_1.default.writeFileSync(CATEGORIES_FILE, JSON.stringify(data, null, 2));
+        // For simplicity, we'll clear and re-insert all categories
+        // In production, you might want more sophisticated upsert logic
+        // First, delete existing categories
+        await supabaseClient_1.default
+            .from('categories')
+            .delete()
+            .gte('id', 0);
+        // Then insert new categories
+        if (data.categories && data.categories.length > 0) {
+            const categoriesToInsert = data.categories.map(cat => ({
+                name: cat.name,
+                subCategories: cat.subCategories || []
+            }));
+            const { error } = await supabaseClient_1.default
+                .from('categories')
+                .insert(categoriesToInsert);
+            if (error) {
+                console.error("Supabase insert error:", error);
+                throw error;
+            }
+        }
     }
     catch (error) {
         console.error("Error writing categories:", error);
@@ -177,21 +197,21 @@ const addExpense = async (req, res) => {
         if (!newExpense.description || !newExpense.amount || !newExpense.category) {
             return res.status(400).json({ error: "Missing required fields" });
         }
-        // Generate auto-increment integer ID
-        const expenses = await readExpenses();
-        let maxId = 0;
-        // Find the highest existing ID
-        expenses.forEach((expense) => {
-            const numId = parseInt(expense.id);
-            if (!isNaN(numId) && numId > maxId) {
-                maxId = numId;
-            }
-        });
-        // Set new ID as next integer
-        newExpense.id = (maxId + 1).toString();
-        expenses.unshift(newExpense); // Add to beginning of array
-        writeExpenses(expenses);
-        res.status(201).json(newExpense);
+        const insertedExpense = await insertExpense(newExpense);
+        // Transform the response to match expected format
+        const responseExpense = {
+            id: insertedExpense.id.toString(),
+            date: insertedExpense.date,
+            type: insertedExpense.type,
+            description: insertedExpense.description,
+            amount: insertedExpense.amount,
+            paidBy: insertedExpense.paidBy,
+            category: newExpense.category, // Use original category name
+            subCategory: insertedExpense.subCategory,
+            source: insertedExpense.source,
+            notes: insertedExpense.notes,
+        };
+        res.status(201).json(responseExpense);
     }
     catch (error) {
         console.error("Error adding expense:", error);
@@ -204,14 +224,75 @@ const updateExpense = async (req, res) => {
     try {
         const { id } = req.params;
         const updatedExpense = req.body;
-        const expenses = await readExpenses();
-        const index = expenses.findIndex((expense) => expense.id === id);
-        if (index === -1) {
+        // Look up category ID if category is provided
+        let categoryId;
+        if (updatedExpense.category) {
+            const { data: categoryData, error: categoryError } = await supabaseClient_1.default
+                .from('categories')
+                .select('id')
+                .eq('name', updatedExpense.category)
+                .single();
+            if (categoryError) {
+                // If category doesn't exist, create it
+                const { data: newCategory, error: createError } = await supabaseClient_1.default
+                    .from('categories')
+                    .insert([{ name: updatedExpense.category, subCategories: [updatedExpense.subCategory || "General"] }])
+                    .select('id')
+                    .single();
+                if (createError) {
+                    console.error(`Error creating category ${updatedExpense.category}:`, createError);
+                    return res.status(500).json({ error: "Failed to create category" });
+                }
+                categoryId = newCategory.id;
+            }
+            else {
+                categoryId = categoryData.id;
+            }
+        }
+        // Prepare update data
+        const updateData = {
+            description: updatedExpense.description,
+            amount: updatedExpense.amount,
+            type: updatedExpense.type,
+            date: updatedExpense.date,
+            paidBy: updatedExpense.paidBy,
+            subCategory: updatedExpense.subCategory,
+            source: updatedExpense.source,
+            notes: updatedExpense.notes,
+        };
+        if (categoryId) {
+            updateData.categoryId = categoryId;
+        }
+        // Update in Supabase
+        const { data, error } = await supabaseClient_1.default
+            .from('expenses')
+            .update(updateData)
+            .eq('id', parseInt(id))
+            .select();
+        if (error) {
+            if (error.code === 'PGRST116') {
+                return res.status(404).json({ error: "Expense not found" });
+            }
+            console.error("Supabase update error:", error);
+            return res.status(500).json({ error: "Failed to update expense" });
+        }
+        if (!data || data.length === 0) {
             return res.status(404).json({ error: "Expense not found" });
         }
-        expenses[index] = { ...expenses[index], ...updatedExpense, id };
-        writeExpenses(expenses);
-        res.json(expenses[index]);
+        // Transform response to match expected format
+        const responseExpense = {
+            id: data[0].id.toString(),
+            date: data[0].date,
+            type: data[0].type,
+            description: data[0].description,
+            amount: data[0].amount,
+            paidBy: data[0].paidBy,
+            category: updatedExpense.category || data[0].category,
+            subCategory: data[0].subCategory,
+            source: data[0].source,
+            notes: data[0].notes,
+        };
+        res.json(responseExpense);
     }
     catch (error) {
         console.error("Error updating expense:", error);
@@ -223,13 +304,17 @@ exports.updateExpense = updateExpense;
 const deleteExpense = async (req, res) => {
     try {
         const { id } = req.params;
-        const expenses = await readExpenses();
-        const index = expenses.findIndex((expense) => expense.id === id);
-        if (index === -1) {
-            return res.status(404).json({ error: "Expense not found" });
+        const { error } = await supabaseClient_1.default
+            .from('expenses')
+            .delete()
+            .eq('id', parseInt(id));
+        if (error) {
+            if (error.code === 'PGRST116') {
+                return res.status(404).json({ error: "Expense not found" });
+            }
+            console.error("Supabase delete error:", error);
+            return res.status(500).json({ error: "Failed to delete expense" });
         }
-        expenses.splice(index, 1);
-        writeExpenses(expenses);
         res.json({ message: "Expense deleted successfully" });
     }
     catch (error) {
@@ -245,14 +330,29 @@ const importExpenses = async (req, res) => {
         if (!Array.isArray(importedExpenses)) {
             return res.status(400).json({ error: "Expected array of expenses" });
         }
-        const expenses = await readExpenses();
-        // Add imported expenses to the beginning
-        const updatedExpenses = [...importedExpenses, ...expenses];
-        writeExpenses(updatedExpenses);
-        res.json({
-            message: "Expenses imported successfully",
-            count: importedExpenses.length,
-        });
+        let successCount = 0;
+        const errors = [];
+        // Insert each expense individually to handle category creation
+        for (const expense of importedExpenses) {
+            try {
+                await insertExpense(expense);
+                successCount++;
+            }
+            catch (error) {
+                console.error(`Error importing expense: ${expense.description}:`, error);
+                errors.push(`Failed to import: ${expense.description}`);
+            }
+        }
+        const response = {
+            message: "Import completed",
+            successCount: successCount,
+            totalCount: importedExpenses.length,
+        };
+        if (errors.length > 0) {
+            response.errors = errors;
+            response.message = `Import completed with ${errors.length} errors`;
+        }
+        res.json(response);
     }
     catch (error) {
         console.error("Error importing expenses:", error);
@@ -267,12 +367,22 @@ const bulkDeleteExpenses = async (req, res) => {
         if (!Array.isArray(ids)) {
             return res.status(400).json({ error: "Expected array of IDs" });
         }
-        const expenses = await readExpenses();
-        const filteredExpenses = expenses.filter((expense) => !ids.includes(expense.id));
-        writeExpenses(filteredExpenses);
+        // Convert string IDs to integers
+        const numericIds = ids.map(id => parseInt(id)).filter(id => !isNaN(id));
+        if (numericIds.length === 0) {
+            return res.status(400).json({ error: "No valid IDs provided" });
+        }
+        const { error } = await supabaseClient_1.default
+            .from('expenses')
+            .delete()
+            .in('id', numericIds);
+        if (error) {
+            console.error("Supabase bulk delete error:", error);
+            return res.status(500).json({ error: "Failed to delete expenses" });
+        }
         res.json({
             message: "Expenses deleted successfully",
-            deletedCount: expenses.length - filteredExpenses.length,
+            deletedCount: numericIds.length,
         });
     }
     catch (error) {
@@ -282,9 +392,9 @@ const bulkDeleteExpenses = async (req, res) => {
 };
 exports.bulkDeleteExpenses = bulkDeleteExpenses;
 // GET /api/expenses/backup - Create backup of expenses
-const backupExpenses = (req, res) => {
+const backupExpenses = async (req, res) => {
     try {
-        const expenses = readExpenses();
+        const expenses = await readExpenses();
         const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
         const backupFileName = `expenses-backup-${timestamp}.json`;
         res.setHeader("Content-Type", "application/json");
@@ -298,9 +408,9 @@ const backupExpenses = (req, res) => {
 };
 exports.backupExpenses = backupExpenses;
 // GET /api/expenses/categories - Get categories
-const getCategories = (req, res) => {
+const getCategories = async (req, res) => {
     try {
-        const categories = readCategories();
+        const categories = await readCategories();
         res.json(categories);
     }
     catch (error) {
@@ -310,14 +420,14 @@ const getCategories = (req, res) => {
 };
 exports.getCategories = getCategories;
 // POST /api/expenses/categories - Save categories
-const saveCategories = (req, res) => {
+const saveCategories = async (req, res) => {
     try {
         const categoryData = req.body;
         // Validate required fields
         if (!categoryData.categories || !Array.isArray(categoryData.categories)) {
             return res.status(400).json({ error: "Invalid categories data" });
         }
-        writeCategories(categoryData);
+        await writeCategories(categoryData);
         res.json({ message: "Categories saved successfully" });
     }
     catch (error) {
