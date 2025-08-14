@@ -63,7 +63,7 @@ export const getTasks: RequestHandler = async (req, res) => {
 };
 
 // POST /api/tasks - Add new task
-export const addTask: RequestHandler = (req, res) => {
+export const addTask: RequestHandler = async (req, res) => {
   try {
     const newTask: Task = req.body;
 
@@ -72,22 +72,49 @@ export const addTask: RequestHandler = (req, res) => {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // Generate ID if not provided
-    if (!newTask.id) {
-      newTask.id = Date.now().toString();
+    // Prepare task data for Supabase
+    const taskData = {
+      title: newTask.title,
+      description: newTask.description,
+      category: newTask.category,
+      task_type: newTask.taskType,
+      priority: newTask.priority || "medium",
+      status: newTask.status || "pending",
+      due_date: newTask.dueDate,
+      assigned_to: newTask.assignedTo,
+      notes: newTask.notes,
+      reminder_sent: false
+    };
+
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert([taskData])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Supabase insert error:", error);
+      throw error;
     }
 
-    // Set default values
-    newTask.status = newTask.status || "pending";
-    newTask.createdAt =
-      newTask.createdAt || new Date().toISOString().split("T")[0];
-    newTask.reminderSent = false;
+    // Transform back to expected format
+    const returnTask = {
+      id: data.id.toString(),
+      title: data.title,
+      description: data.description,
+      category: data.category,
+      taskType: data.task_type,
+      priority: data.priority,
+      status: data.status,
+      dueDate: data.due_date,
+      assignedTo: data.assigned_to,
+      notes: data.notes,
+      reminderSent: data.reminder_sent,
+      completedAt: data.completed_at,
+      createdAt: data.created_at
+    };
 
-    const tasks = readTasks();
-    tasks.unshift(newTask); // Add to beginning of array
-    writeTasks(tasks);
-
-    res.status(201).json(newTask);
+    res.status(201).json(returnTask);
   } catch (error) {
     console.error("Error adding task:", error);
     res.status(500).json({ error: "Failed to add task" });
@@ -95,30 +122,63 @@ export const addTask: RequestHandler = (req, res) => {
 };
 
 // PUT /api/tasks/:id - Update existing task
-export const updateTask: RequestHandler = (req, res) => {
+export const updateTask: RequestHandler = async (req, res) => {
   try {
     const { id } = req.params;
     const updatedTask: Task = req.body;
 
-    const tasks = readTasks();
-    const index = tasks.findIndex((task) => task.id === id);
-
-    if (index === -1) {
-      return res.status(404).json({ error: "Task not found" });
-    }
+    // Prepare update data
+    const updateData: any = {
+      title: updatedTask.title,
+      description: updatedTask.description,
+      category: updatedTask.category,
+      task_type: updatedTask.taskType,
+      priority: updatedTask.priority,
+      status: updatedTask.status,
+      due_date: updatedTask.dueDate,
+      assigned_to: updatedTask.assignedTo,
+      notes: updatedTask.notes,
+      reminder_sent: updatedTask.reminderSent
+    };
 
     // If status is being changed to completed, set completedAt
-    if (
-      updatedTask.status === "completed" &&
-      tasks[index].status !== "completed"
-    ) {
-      updatedTask.completedAt = new Date().toISOString().split("T")[0];
+    if (updatedTask.status === "completed") {
+      updateData.completed_at = new Date().toISOString().split("T")[0];
     }
 
-    tasks[index] = { ...tasks[index], ...updatedTask, id };
-    writeTasks(tasks);
+    const { data, error } = await supabase
+      .from('tasks')
+      .update(updateData)
+      .eq('id', parseInt(id))
+      .select()
+      .single();
 
-    res.json(tasks[index]);
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return res.status(404).json({ error: "Task not found" });
+      }
+      console.error("Supabase update error:", error);
+      throw error;
+    }
+
+    // Transform back to expected format
+    const returnTask = {
+      id: data.id.toString(),
+      title: data.title,
+      description: data.description,
+      category: data.category,
+      taskType: data.task_type,
+      priority: data.priority,
+      status: data.status,
+      dueDate: data.due_date,
+      assignedTo: data.assigned_to,
+      notes: data.notes,
+      reminderSent: data.reminder_sent,
+      completedAt: data.completed_at,
+      createdAt: data.created_at
+    };
+
+    res.json(returnTask);
   } catch (error) {
     console.error("Error updating task:", error);
     res.status(500).json({ error: "Failed to update task" });
@@ -126,19 +186,41 @@ export const updateTask: RequestHandler = (req, res) => {
 };
 
 // DELETE /api/tasks/:id - Delete task
-export const deleteTask: RequestHandler = (req, res) => {
+export const deleteTask: RequestHandler = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const tasks = readTasks();
-    const index = tasks.findIndex((task) => task.id === id);
+    const { data, error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', parseInt(id))
+      .select()
+      .single();
 
-    if (index === -1) {
-      return res.status(404).json({ error: "Task not found" });
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return res.status(404).json({ error: "Task not found" });
+      }
+      console.error("Supabase delete error:", error);
+      throw error;
     }
 
-    const deletedTask = tasks.splice(index, 1)[0];
-    writeTasks(tasks);
+    // Transform deleted task to expected format
+    const deletedTask = {
+      id: data.id.toString(),
+      title: data.title,
+      description: data.description,
+      category: data.category,
+      taskType: data.task_type,
+      priority: data.priority,
+      status: data.status,
+      dueDate: data.due_date,
+      assignedTo: data.assigned_to,
+      notes: data.notes,
+      reminderSent: data.reminder_sent,
+      completedAt: data.completed_at,
+      createdAt: data.created_at
+    };
 
     res.json({
       message: "Task deleted successfully",
