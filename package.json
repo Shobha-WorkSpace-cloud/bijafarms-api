@@ -1,7 +1,7 @@
 {
-  "name": "aura-haven-backend",
+  "name": "bijafarms-backend",
   "version": "1.0.0",
-  "description": "Backend API for Aura Haven farm management system",
+  "description": "Backend API for Bija farm management system",
   "type": "commonjs",
   "main": "dist/index.js",
   "scripts": {
