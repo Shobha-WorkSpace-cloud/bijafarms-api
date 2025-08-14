@@ -98,7 +98,7 @@ function createServer() {
     res.json({
       name: "Bijafarms Backend API",
       version: "1.0.0",
-      description: "Backend API for Aura Haven farm management system",
+      description: "Backend API for Bijafarms farm management system",
       endpoints: {
         ping: "/api/ping",
         demo: "/api/demo",
