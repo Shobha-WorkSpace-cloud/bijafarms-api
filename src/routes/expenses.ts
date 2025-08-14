@@ -148,24 +148,64 @@ const writeExpenses = async (newexpenses: ExpenseRecord[]): Promise<void> => {
   }
 };
 
-// Helper function to read categories from JSON file
-const readCategories = (): CategoryManagementData => {
+// Helper function to read categories from Supabase
+const readCategories = async (): Promise<CategoryManagementData> => {
   try {
-    if (!fs.existsSync(CATEGORIES_FILE)) {
+    const { data: categories, error } = await supabase
+      .from('categories')
+      .select('*')
+      .order('id', { ascending: true });
+
+    if (error) {
+      console.error("Supabase error:", error);
       return { categories: [], lastUpdated: new Date().toISOString() };
     }
-    const data = fs.readFileSync(CATEGORIES_FILE, "utf8");
-    return JSON.parse(data);
+
+    const categoryConfigs: CategoryConfig[] = categories?.map(cat => ({
+      id: cat.id.toString(),
+      name: cat.name,
+      subCategories: cat.subCategories || [],
+      createdAt: cat.createdAt || new Date().toISOString()
+    })) || [];
+
+    return {
+      categories: categoryConfigs,
+      lastUpdated: new Date().toISOString()
+    };
   } catch (error) {
     console.error("Error reading categories:", error);
     return { categories: [], lastUpdated: new Date().toISOString() };
   }
 };
 
-// Helper function to write categories to JSON file
-const writeCategories = (data: CategoryManagementData): void => {
+// Helper function to write categories to Supabase
+const writeCategories = async (data: CategoryManagementData): Promise<void> => {
   try {
-    fs.writeFileSync(CATEGORIES_FILE, JSON.stringify(data, null, 2));
+    // For simplicity, we'll clear and re-insert all categories
+    // In production, you might want more sophisticated upsert logic
+
+    // First, delete existing categories
+    await supabase
+      .from('categories')
+      .delete()
+      .gte('id', 0);
+
+    // Then insert new categories
+    if (data.categories && data.categories.length > 0) {
+      const categoriesToInsert = data.categories.map(cat => ({
+        name: cat.name,
+        subCategories: cat.subCategories || []
+      }));
+
+      const { error } = await supabase
+        .from('categories')
+        .insert(categoriesToInsert);
+
+      if (error) {
+        console.error("Supabase insert error:", error);
+        throw error;
+      }
+    }
   } catch (error) {
     console.error("Error writing categories:", error);
     throw error;
@@ -332,9 +372,9 @@ export const backupExpenses: RequestHandler = (req, res) => {
 };
 
 // GET /api/expenses/categories - Get categories
-export const getCategories: RequestHandler = (req, res) => {
+export const getCategories: RequestHandler = async (req, res) => {
   try {
-    const categories = readCategories();
+    const categories = await readCategories();
     res.json(categories);
   } catch (error) {
     console.error("Error getting categories:", error);
@@ -343,7 +383,7 @@ export const getCategories: RequestHandler = (req, res) => {
 };
 
 // POST /api/expenses/categories - Save categories
-export const saveCategories: RequestHandler = (req, res) => {
+export const saveCategories: RequestHandler = async (req, res) => {
   try {
     const categoryData: CategoryManagementData = req.body;
 
@@ -352,7 +392,7 @@ export const saveCategories: RequestHandler = (req, res) => {
       return res.status(400).json({ error: "Invalid categories data" });
     }
 
-    writeCategories(categoryData);
+    await writeCategories(categoryData);
     res.json({ message: "Categories saved successfully" });
   } catch (error) {
     console.error("Error saving categories:", error);
