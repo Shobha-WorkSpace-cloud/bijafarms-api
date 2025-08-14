@@ -1,6 +1,6 @@
-# Aura Haven Backend API
+# Bijafarms Backend API
 
-Backend API server for the Aura Haven farm management system.
+Backend API server for the Bija farm management system.
 
 ## Setup
 
