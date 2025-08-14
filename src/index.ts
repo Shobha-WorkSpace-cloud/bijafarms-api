@@ -93,6 +93,24 @@ function createServer() {
     console.log(`📝 Registered: ${method.toUpperCase()} ${fullPath}`);
   };
 
+  // Root route - API information
+  app.get("/", (_req: any, res: any) => {
+    res.json({
+      name: "Aura Haven Backend API",
+      version: "1.0.0",
+      description: "Backend API for Aura Haven farm management system",
+      endpoints: {
+        ping: "/api/ping",
+        demo: "/api/demo",
+        expenses: "/api/expenses",
+        tasks: "/api/tasks",
+        animals: "/api/animals",
+        reminders: "/api/send-whatsapp-reminder"
+      },
+      status: "running"
+    });
+  });
+
   // Example API routes
   registerRoute("get", "/ping", (_req: any, res: any) => {
     const ping = process.env.PING_MESSAGE ?? "Backend API is running";
