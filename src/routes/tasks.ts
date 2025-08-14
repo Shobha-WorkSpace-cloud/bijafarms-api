@@ -135,7 +135,6 @@ export const updateTask: RequestHandler = async (req, res) => {
       due_date: updatedTask.dueDate,
       assigned_to: updatedTask.assignedTo,
       notes: updatedTask.notes,
-      reminder_sent: updatedTask.reminderSent
     };
 
     // If status is being changed to completed, set completedAt
