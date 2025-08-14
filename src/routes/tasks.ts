@@ -14,7 +14,6 @@ interface Task {
   notes: string;
   createdAt: string;
   completedAt?: string;
-  reminderSent?: boolean;
 }
 
 // Helper function to read tasks from Supabase
