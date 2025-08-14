@@ -89,66 +89,122 @@ const readWeightRecords = async (animalId?: string): Promise<WeightRecord[]> => 
   }
 };
 
-const readBreedingRecords = (): BreedingRecord[] => {
+const readBreedingRecords = async (animalId?: string): Promise<BreedingRecord[]> => {
   try {
-    if (!fs.existsSync(BREEDING_RECORDS_FILE)) return [];
-    const data = fs.readFileSync(BREEDING_RECORDS_FILE, "utf8");
-    return JSON.parse(data);
+    let query = supabase
+      .from('breeding_records')
+      .select('*')
+      .order('breedingDate', { ascending: false });
+
+    if (animalId) {
+      query = query.or(`motherId.eq.${animalId},fatherId.eq.${animalId}`);
+    }
+
+    const { data: records, error } = await query;
+
+    if (error) {
+      console.error("Supabase error:", error);
+      return [];
+    }
+
+    return records?.map(record => ({
+      id: record.id.toString(),
+      motherId: record.motherId?.toString(),
+      fatherId: record.fatherId?.toString(),
+      breedingDate: record.breedingDate,
+      expectedDeliveryDate: record.expectedDeliveryDate,
+      actualDeliveryDate: record.actualDeliveryDate,
+      totalKids: record.totalKids,
+      maleKids: record.maleKids,
+      femaleKids: record.femaleKids,
+      kidDetails: record.kid_details,
+      breedingMethod: record.breedingMethod,
+      veterinarianName: record.veterinarianName,
+      notes: record.notes,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt
+    })) || [];
   } catch (error) {
     console.error("Error reading breeding records:", error);
     return [];
   }
 };
 
-const writeBreedingRecords = (records: BreedingRecord[]): void => {
+const readVaccinationRecords = async (animalId?: string): Promise<VaccinationRecord[]> => {
   try {
-    fs.writeFileSync(BREEDING_RECORDS_FILE, JSON.stringify(records, null, 2));
-  } catch (error) {
-    console.error("Error writing breeding records:", error);
-    throw error;
-  }
-};
+    let query = supabase
+      .from('vaccination_records')
+      .select('*')
+      .order('administrationDate', { ascending: false });
 
-const readVaccinationRecords = (): VaccinationRecord[] => {
-  try {
-    if (!fs.existsSync(VACCINATION_RECORDS_FILE)) return [];
-    const data = fs.readFileSync(VACCINATION_RECORDS_FILE, "utf8");
-    return JSON.parse(data);
+    if (animalId) {
+      query = query.eq('animalId', parseInt(animalId));
+    }
+
+    const { data: records, error } = await query;
+
+    if (error) {
+      console.error("Supabase error:", error);
+      return [];
+    }
+
+    return records?.map(record => ({
+      id: record.id.toString(),
+      animalId: record.animalId.toString(),
+      vaccineName: record.vaccineName,
+      vaccineType: record.vaccineType,
+      administrationDate: record.administrationDate,
+      nextDueDate: record.nextDueDate,
+      batchNumber: record.batchNumber,
+      veterinarianName: record.veterinarianName,
+      dosage: record.dosage,
+      administrationMethod: record.administrationMethod,
+      cost: record.cost,
+      notes: record.notes,
+      createdAt: record.createdAt
+    })) || [];
   } catch (error) {
     console.error("Error reading vaccination records:", error);
     return [];
   }
 };
 
-const writeVaccinationRecords = (records: VaccinationRecord[]): void => {
+const readHealthRecords = async (animalId?: string): Promise<HealthRecord[]> => {
   try {
-    fs.writeFileSync(
-      VACCINATION_RECORDS_FILE,
-      JSON.stringify(records, null, 2),
-    );
-  } catch (error) {
-    console.error("Error writing vaccination records:", error);
-    throw error;
-  }
-};
+    let query = supabase
+      .from('health_records')
+      .select('*')
+      .order('date', { ascending: false });
 
-const readHealthRecords = (): HealthRecord[] => {
-  try {
-    if (!fs.existsSync(HEALTH_RECORDS_FILE)) return [];
-    const data = fs.readFileSync(HEALTH_RECORDS_FILE, "utf8");
-    return JSON.parse(data);
+    if (animalId) {
+      query = query.eq('animalId', parseInt(animalId));
+    }
+
+    const { data: records, error } = await query;
+
+    if (error) {
+      console.error("Supabase error:", error);
+      return [];
+    }
+
+    return records?.map(record => ({
+      id: record.id.toString(),
+      animalId: record.animalId.toString(),
+      recordType: record.recordType,
+      date: record.date,
+      description: record.description,
+      veterinarianName: record.veterinarianName,
+      diagnosis: record.diagnosis,
+      treatment: record.treatment,
+      medications: record.medications,
+      cost: record.cost,
+      nextCheckupDate: record.nextCheckupDate,
+      notes: record.notes,
+      createdAt: record.createdAt
+    })) || [];
   } catch (error) {
     console.error("Error reading health records:", error);
     return [];
-  }
-};
-
-const writeHealthRecords = (records: HealthRecord[]): void => {
-  try {
-    fs.writeFileSync(HEALTH_RECORDS_FILE, JSON.stringify(records, null, 2));
-  } catch (error) {
-    console.error("Error writing health records:", error);
-    throw error;
   }
 };
 
