@@ -27,7 +27,6 @@ const readTasks = async () => {
             dueDate: task.dueDate,
             assignedTo: task.assignedTo,
             notes: task.notes,
-            reminderSent: task.reminderSent,
             completedAt: task.completedAt,
             createdAt: task.createdAt
         })) || [];
@@ -67,8 +66,7 @@ const addTask = async (req, res) => {
             status: newTask.status || "pending",
             dueDate: newTask.dueDate,
             assignedTo: newTask.assignedTo,
-            notes: newTask.notes,
-            reminderSent: false
+            notes: newTask.notes
         };
         const { data, error } = await supabaseClient_1.default
             .from('tasks')
@@ -91,7 +89,6 @@ const addTask = async (req, res) => {
             dueDate: data.dueDate,
             assignedTo: data.assignedTo,
             notes: data.notes,
-            reminderSent: data.reminderSent,
             completedAt: data.completedAt,
             createdAt: data.createdAt
         };
@@ -118,8 +115,7 @@ const updateTask = async (req, res) => {
             status: updatedTask.status,
             dueDate: updatedTask.dueDate,
             assignedTo: updatedTask.assignedTo,
-            notes: updatedTask.notes,
-            reminderSent: updatedTask.reminderSent
+            notes: updatedTask.notes
         };
         // If status is being changed to completed, set completedAt
         if (updatedTask.status === "completed") {
@@ -150,7 +146,6 @@ const updateTask = async (req, res) => {
             dueDate: data.dueDate,
             assignedTo: data.assignedTo,
             notes: data.notes,
-            reminderSent: data.reminderSent,
             completedAt: data.completedAt,
             createdAt: data.createdAt
         };
@@ -191,7 +186,6 @@ const deleteTask = async (req, res) => {
             dueDate: data.dueDate,
             assignedTo: data.assignedTo,
             notes: data.notes,
-            reminderSent: data.reminderSent,
             completedAt: data.completedAt,
             createdAt: data.createdAt
         };
@@ -269,7 +263,6 @@ const importTasks = async (req, res) => {
             dueDate: task.dueDate,
             assignedTo: task.assignedTo,
             notes: task.notes,
-            reminderSent: task.reminderSent || false,
             completedAt: task.completedAt
         }));
         const { data, error } = await supabaseClient_1.default

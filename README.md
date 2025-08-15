@@ -77,6 +77,7 @@ npm start
 - `POST /api/weight-records` - Create weight record
 - `GET /api/breeding-records` - Get breeding records
 - `POST /api/breeding-records` - Create breeding record
+- `PUT /api/breeding-records/:id` - Update breeding record
 - `GET /api/vaccination-records` - Get vaccination records
 - `POST /api/vaccination-records` - Create vaccination record
 - `GET /api/health-records` - Get health records

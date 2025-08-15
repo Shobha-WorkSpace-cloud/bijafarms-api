@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.backupAnimals = exports.getAnimalSummary = exports.addHealthRecord = exports.getHealthRecords = exports.addVaccinationRecord = exports.getVaccinationRecords = exports.addBreedingRecord = exports.getBreedingRecords = exports.addWeightRecord = exports.getWeightRecords = exports.deleteAnimal = exports.updateAnimal = exports.addAnimal = exports.getAnimals = void 0;
+exports.backupAnimals = exports.getAnimalSummary = exports.addHealthRecord = exports.getHealthRecords = exports.addVaccinationRecord = exports.getVaccinationRecords = exports.getBreedingRecords = exports.addBreedingRecord = exports.updateBreedingRecord = exports.addWeightRecord = exports.getWeightRecords = exports.deleteAnimal = exports.updateAnimal = exports.addAnimal = exports.getAnimals = void 0;
 const supabaseClient_1 = __importDefault(require("./supabaseClient"));
 // Helper functions for database operations
 const readAnimals = async () => {
@@ -107,6 +107,7 @@ const readBreedingRecords = async (animalId) => {
             breedingMethod: record.breedingMethod,
             veterinarianName: record.veterinarianName,
             notes: record.notes,
+            complications: record.complications,
             createdAt: record.createdAt,
             updatedAt: record.updatedAt
         })) || [];
@@ -413,19 +414,66 @@ const addWeightRecord = async (req, res) => {
     }
 };
 exports.addWeightRecord = addWeightRecord;
-// Breeding record operations
-const getBreedingRecords = async (req, res) => {
+const updateBreedingRecord = async (req, res) => {
     try {
-        const { animalId } = req.query;
-        const records = await readBreedingRecords(animalId);
-        res.json(records);
+        const { id } = req.params;
+        const updatedRecord = req.body;
+        // Prepare update data
+        const updateData = {
+            motherId: parseInt(updatedRecord.motherId),
+            fatherId: updatedRecord.fatherId ? parseInt(updatedRecord.fatherId) : null,
+            breedingDate: updatedRecord.breedingDate,
+            expectedDeliveryDate: updatedRecord.expectedDeliveryDate,
+            actualDeliveryDate: updatedRecord.actualDeliveryDate,
+            totalKids: updatedRecord.totalKids,
+            maleKids: updatedRecord.maleKids,
+            femaleKids: updatedRecord.femaleKids,
+            kid_details: updatedRecord.kidDetails,
+            breedingMethod: updatedRecord.breedingMethod,
+            veterinarianName: updatedRecord.veterinarianName,
+            notes: updatedRecord.notes,
+            complications: updatedRecord.complications
+        };
+        const { data, error } = await supabaseClient_1.default
+            .from('breeding_records')
+            .update(updateData)
+            .eq('id', parseInt(id))
+            .select()
+            .single();
+        if (error) {
+            if (error.code === 'PGRST116') {
+                return res.status(404).json({ error: "Record not found" });
+            }
+            console.error("Supabase update error:", error);
+            throw error;
+        }
+        // Transform back to expected format
+        const returnRecord = {
+            id: data.id.toString(),
+            motherId: data.motherId?.toString(),
+            fatherId: data.fatherId?.toString(),
+            breedingDate: data.breedingDate,
+            expectedDeliveryDate: data.expectedDeliveryDate,
+            actualDeliveryDate: data.actualDeliveryDate,
+            totalKids: data.totalKids,
+            maleKids: data.maleKids,
+            femaleKids: data.femaleKids,
+            kidDetails: data.kid_details,
+            breedingMethod: data.breedingMethod,
+            veterinarianName: data.veterinarianName,
+            notes: data.notes,
+            createdAt: data.createdAt,
+            updatedAt: data.updatedAt,
+            complications: data.complications
+        };
+        res.json(returnRecord);
     }
     catch (error) {
-        console.error("Error getting breeding records:", error);
-        res.status(500).json({ error: "Failed to fetch breeding records" });
+        console.error("Error updating breeding record:", error);
+        res.status(500).json({ error: "Failed to update breeding record" });
     }
 };
-exports.getBreedingRecords = getBreedingRecords;
+exports.updateBreedingRecord = updateBreedingRecord;
 const addBreedingRecord = async (req, res) => {
     try {
         const newRecord = req.body;
@@ -441,7 +489,8 @@ const addBreedingRecord = async (req, res) => {
             kid_details: newRecord.kidDetails,
             breedingMethod: newRecord.breedingMethod,
             veterinarianName: newRecord.veterinarianName,
-            notes: newRecord.notes
+            notes: newRecord.notes,
+            complications: newRecord.complications || null // Optional field
         };
         const { data, error } = await supabaseClient_1.default
             .from('breeding_records')
@@ -467,7 +516,8 @@ const addBreedingRecord = async (req, res) => {
             veterinarianName: data.veterinarianName,
             notes: data.notes,
             createdAt: data.createdAt,
-            updatedAt: data.updatedAt
+            updatedAt: data.updatedAt,
+            complications: data.complications
         };
         res.status(201).json(returnRecord);
     }
@@ -477,6 +527,19 @@ const addBreedingRecord = async (req, res) => {
     }
 };
 exports.addBreedingRecord = addBreedingRecord;
+// Breeding record operations
+const getBreedingRecords = async (req, res) => {
+    try {
+        const { animalId } = req.query;
+        const records = await readBreedingRecords(animalId);
+        res.json(records);
+    }
+    catch (error) {
+        console.error("Error getting breeding records:", error);
+        res.status(500).json({ error: "Failed to fetch breeding records" });
+    }
+};
+exports.getBreedingRecords = getBreedingRecords;
 // Vaccination record operations
 const getVaccinationRecords = async (req, res) => {
     try {

@@ -121,6 +121,7 @@ const readBreedingRecords = async (animalId?: string): Promise<BreedingRecord[]>
       breedingMethod: record.breedingMethod,
       veterinarianName: record.veterinarianName,
       notes: record.notes,
+      complications: record.complications,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt
     })) || [];
@@ -447,15 +448,67 @@ export const addWeightRecord: RequestHandler = async (req, res) => {
   }
 };
 
-// Breeding record operations
-export const getBreedingRecords: RequestHandler = async (req, res) => {
+export const updateBreedingRecord: RequestHandler = async (req, res) => {
   try {
-    const { animalId } = req.query;
-    const records = await readBreedingRecords(animalId as string);
-    res.json(records);
+    const { id } = req.params;
+    const updatedRecord: BreedingRecord = req.body;
+
+    // Prepare update data
+    const updateData = {
+      motherId: parseInt(updatedRecord.motherId),
+      fatherId: updatedRecord.fatherId ? parseInt(updatedRecord.fatherId) : null,
+      breedingDate: updatedRecord.breedingDate,
+      expectedDeliveryDate: updatedRecord.expectedDeliveryDate,
+      actualDeliveryDate: updatedRecord.actualDeliveryDate,
+      totalKids: updatedRecord.totalKids,
+      maleKids: updatedRecord.maleKids,
+      femaleKids: updatedRecord.femaleKids,
+      kid_details: updatedRecord.kidDetails,
+      breedingMethod: updatedRecord.breedingMethod,
+      veterinarianName: updatedRecord.veterinarianName,
+      notes: updatedRecord.notes,
+      complications: updatedRecord.complications 
+    };
+
+    const { data, error } = await supabase
+      .from('breeding_records')
+      .update(updateData)
+      .eq('id', parseInt(id))
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return res.status(404).json({ error: "Record not found" });
+      }
+      console.error("Supabase update error:", error);
+      throw error;
+    }
+
+    // Transform back to expected format
+     const returnRecord = {
+      id: data.id.toString(),
+      motherId: data.motherId?.toString(),
+      fatherId: data.fatherId?.toString(),
+      breedingDate: data.breedingDate,
+      expectedDeliveryDate: data.expectedDeliveryDate,
+      actualDeliveryDate: data.actualDeliveryDate,
+      totalKids: data.totalKids,
+      maleKids: data.maleKids,
+      femaleKids: data.femaleKids,
+      kidDetails: data.kid_details,
+      breedingMethod: data.breedingMethod,
+      veterinarianName: data.veterinarianName,
+      notes: data.notes,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
+      complications: data.complications 
+    };
+
+    res.json(returnRecord);
   } catch (error) {
-    console.error("Error getting breeding records:", error);
-    res.status(500).json({ error: "Failed to fetch breeding records" });
+    console.error("Error updating breeding record:", error);
+    res.status(500).json({ error: "Failed to update breeding record" });
   }
 };
 
@@ -475,7 +528,8 @@ export const addBreedingRecord: RequestHandler = async (req, res) => {
       kid_details: newRecord.kidDetails,
       breedingMethod: newRecord.breedingMethod,
       veterinarianName: newRecord.veterinarianName,
-      notes: newRecord.notes
+      notes: newRecord.notes,
+      complications: newRecord.complications || null // Optional field
     };
 
     const { data, error } = await supabase
@@ -504,7 +558,8 @@ export const addBreedingRecord: RequestHandler = async (req, res) => {
       veterinarianName: data.veterinarianName,
       notes: data.notes,
       createdAt: data.createdAt,
-      updatedAt: data.updatedAt
+      updatedAt: data.updatedAt,
+      complications: data.complications 
     };
 
     res.status(201).json(returnRecord);
@@ -514,6 +569,17 @@ export const addBreedingRecord: RequestHandler = async (req, res) => {
   }
 };
 
+// Breeding record operations
+export const getBreedingRecords: RequestHandler = async (req, res) => {
+  try {
+    const { animalId } = req.query;
+    const records = await readBreedingRecords(animalId as string);
+    res.json(records);
+  } catch (error) {
+    console.error("Error getting breeding records:", error);
+    res.status(500).json({ error: "Failed to fetch breeding records" });
+  }
+};
 // Vaccination record operations
 export const getVaccinationRecords: RequestHandler = async (req, res) => {
   try {

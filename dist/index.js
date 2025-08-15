@@ -12,9 +12,7 @@ const supabaseUrl = 'https://dbmthxrbrlgkuhiznsul.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRibXRoeHJicmxna3VoaXpuc3VsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1NTU0ODEsImV4cCI6MjA3MDEzMTQ4MX0.b6gFaZcT5AdVPomr7U-5Y2S_slIqza_4zeCtkC5s8Kc';
 const supabase = (0, supabase_js_1.createClient)(supabaseUrl, supabaseKey);
 const expenses_1 = require("./routes/expenses");
-const sms_reminders_1 = require("./routes/sms-reminders");
 const tasks_1 = require("./routes/tasks");
-const test_reminder_1 = require("./routes/test-reminder");
 const animals_1 = require("./routes/animals");
 function createServer() {
     const app = (0, express_1.default)();
@@ -63,11 +61,6 @@ function createServer() {
     registerRoute("get", "/expenses/categories", expenses_1.getCategories);
     registerRoute("post", "/expenses/categories", expenses_1.saveCategories);
     registerRoute("post", "/expenses/populate-categories", expenses_1.populateCategories);
-    // WhatsApp reminder routes
-    registerRoute("post", "/send-whatsapp-reminder", sms_reminders_1.sendWhatsAppReminderEndpoint);
-    registerRoute("post", "/schedule-reminder", sms_reminders_1.scheduleReminder);
-    registerRoute("post", "/test-whatsapp", sms_reminders_1.sendTestWhatsApp);
-    registerRoute("post", "/test-whatsapp-simple", sms_reminders_1.sendTestWhatsAppSimple);
     // Task management routes
     registerRoute("get", "/tasks", tasks_1.getTasks);
     registerRoute("post", "/tasks", tasks_1.addTask);
@@ -76,10 +69,6 @@ function createServer() {
     registerRoute("post", "/tasks/bulk-delete", tasks_1.bulkDeleteTasks);
     registerRoute("get", "/tasks/backup", tasks_1.backupTasks);
     registerRoute("post", "/tasks/import", tasks_1.importTasks);
-    // Test reminder validation routes
-    registerRoute("post", "/test-reminder-validation", test_reminder_1.createTestReminderTask);
-    registerRoute("get", "/test-reminder-validation", test_reminder_1.checkReminderValidation);
-    registerRoute("delete", "/test-reminder-validation", test_reminder_1.cleanupTestTasks);
     // Animal management routes
     registerRoute("get", "/animals", animals_1.getAnimals);
     registerRoute("post", "/animals", animals_1.addAnimal);
@@ -92,6 +81,7 @@ function createServer() {
     registerRoute("post", "/weight-records", animals_1.addWeightRecord);
     registerRoute("get", "/breeding-records", animals_1.getBreedingRecords);
     registerRoute("post", "/breeding-records", animals_1.addBreedingRecord);
+    registerRoute("put", "/breeding-records/:id", animals_1.updateBreedingRecord);
     registerRoute("get", "/vaccination-records", animals_1.getVaccinationRecords);
     registerRoute("post", "/vaccination-records", animals_1.addVaccinationRecord);
     registerRoute("get", "/health-records", animals_1.getHealthRecords);

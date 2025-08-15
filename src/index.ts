@@ -39,6 +39,7 @@ import {
   addWeightRecord,
   getBreedingRecords,
   addBreedingRecord,
+  updateBreedingRecord,
   getVaccinationRecords,
   addVaccinationRecord,
   getHealthRecords,
@@ -132,6 +133,7 @@ function createServer() {
   registerRoute("post", "/weight-records", addWeightRecord);
   registerRoute("get", "/breeding-records", getBreedingRecords);
   registerRoute("post", "/breeding-records", addBreedingRecord);
+  registerRoute("put", "/breeding-records/:id", updateBreedingRecord);
   registerRoute("get", "/vaccination-records", getVaccinationRecords);
   registerRoute("post", "/vaccination-records", addVaccinationRecord);
   registerRoute("get", "/health-records", getHealthRecords);
