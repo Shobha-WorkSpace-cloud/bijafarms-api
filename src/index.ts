@@ -54,7 +54,7 @@ function createServer() {
   // CORS configuration
   const allowedOrigins = [
       'http://localhost:8080', // For local development
-      'http://localhost:10000', // For local render deployment
+      'https://bijaagro.github.io', // For bija deployment
       'https://shobha-workspace-cloud.github.io',// Add your GitHub Pages origin here
     ];
 
